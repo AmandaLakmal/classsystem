@@ -6,23 +6,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "enrolement")
+@Table(name = "lession")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Enrollment {
+public class Lession {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "student_id")
-    private Student student;
-
+    private String title;
+    private String videoUrl;
     @ManyToOne
     @JoinColumn(name = "course_id")
     private Course course;
-
-    private String lastPaidMonth;  //eg :- may 20
-    private boolean hasAccess; //if student complete his payment show content
 }
