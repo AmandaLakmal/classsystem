@@ -16,11 +16,11 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String studentRegId;
 
     @Column(nullable = false)
-    private String firsName;
+    private String firstName;
 
     @Column(nullable = false)
     private String lastName;
@@ -36,4 +36,8 @@ public class Student {
     private String address;
 
     private String instituteName; // ළමයා එන ආයතනයේ නම (උදා: සීසුල, සක්යා)
+
+    @ManyToOne
+    @JoinColumn(name = "batch_id")
+    private Batch batch;
 }
