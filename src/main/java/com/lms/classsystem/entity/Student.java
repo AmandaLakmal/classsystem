@@ -16,6 +16,9 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String studentRegId;
+
     @Column(nullable = false)
     private String firsName;
 
@@ -31,4 +34,6 @@ public class Student {
     private String contactNumber;
 
     private String address;
+
+    private String instituteName; // ළමයා එන ආයතනයේ නම (උදා: සීසුල, සක්යා)
 }
