@@ -1,5 +1,7 @@
 package com.lms.classsystem.service.impl;
 
+import com.lms.classsystem.dto.StudentSaveDTO;
+import com.lms.classsystem.dto.StudentUpdateDTO;
 import com.lms.classsystem.entity.Batch;
 import com.lms.classsystem.entity.Student;
 import com.lms.classsystem.repository.BatchRepository;
@@ -9,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class StudentServiceImpl implements StudentService {
@@ -17,47 +20,114 @@ public class StudentServiceImpl implements StudentService {
     private StudentRepository studentRepository;
 
     @Autowired
-    private BatchRepository batchRepository; // Batch සහ Location විස්තර ගන්න මේක අනිවාර්යයි
+    private BatchRepository batchRepository;
 
     @Override
-    public Student saveStudent(Student student) {
-        // 1. Postman එකෙන් එවන Batch ID එක පාවිච්චි කරලා Database එකෙන් ඒ බැච් එකේ විස්තර ගන්නවා
-        Batch batch = batchRepository.findById(student.getBatch().getId())
+    public Student saveStudent(StudentSaveDTO studentDTO) {
+        // 1. අලුත්: ඉස්සෙල්ලාම එවපු Email එකෙන් දැනටමත් ළමයෙක් ඉන්නවද බලනවා (ආරක්ෂාවට)
+        if (studentRepository.existsByEmail(studentDTO.getEmail())) {
+            throw new RuntimeException("Email already exists: " + studentDTO.getEmail());
+        }
+
+        // 2. Postman eken ena Batch ID eka use karala Database eken e batch eke details gannwa
+        Batch batch = batchRepository.findById(studentDTO.getBatchId())
                 .orElseThrow(() -> new RuntimeException("Can't find that batch"));
 
-        // 2. ඒ බැච් එකට සම්බන්ධ ලොකේෂන් එකේ නම සහ බැච් එකේ අවුරුද්ද ගන්නවා
-        String locName = batch.getLocation().getName(); // උදා: "Gurumadala"
-        String year = batch.getYear(); // උදා: "2026"
+        // 3. e Batch ekt sambanda location eke name ek saha batch eke year eka gannawa
+        String locName = batch.getLocation().getName(); // eg: "Gurumadala - Kalutara"
+        String year = batch.getYear(); // eg: "2026"
 
-        // 3. ලොකේෂන් එක අනුව Prefix එක (GURU/ONL) තීරණය කරනවා
+        // 4. ලොකේෂන් එක අනුව Prefix එක (GURU/ONL) තීරණය කරනවා (ඔයාගේ පරණ ලොජික් එක)
         String prefix;
         if (locName.equalsIgnoreCase("Online")) {
             prefix = "ONL";
         } else {
-            // නමේ මුල් අකුරු 4 Uppercase කරනවා (Gurumadala -> GURU)
+            // name mul akuru 4 Uppercase krnw (Gurumadala -> GURU)
             prefix = (locName.length() >= 4) ? locName.substring(0, 4).toUpperCase() : locName.toUpperCase();
         }
 
-        // 4. දැනට Database එකේ ඉන්න මුළු ළමයින් ගණන අරන් ඊළඟ අංකය (+1) තීරණය කරනවා
-        long nextNumber = studentRepository.count() + 1;
+        // 5. අලුත් ID ලොජික්: මේ බැච් එකේ විතරක් දැනට ඉන්න ළමයි ගණන බලලා 1ක් එකතු කරනවා
+        long nextNumber = studentRepository.countByBatchId(batch.getId()) + 1;
 
-        // 5. අවසාන Registration ID එක හදනවා (Format: GURU/2026/001)
+        // 6. අවසාන Registration ID එක හදනවා (Format: GURU/2026/001)
         String generatedRegId = String.format("%s/%s/%03d", prefix, year, nextNumber);
 
-        // 6. හැදුණු ID එක ශිෂ්‍යයාට සෙට් කරලා, මුළු බැච් එකම ශිෂ්‍යයාගේ Object එකට සම්බන්ධ කරනවා
+        Student student = new Student();
+        student.setFirstName(studentDTO.getFirstName());
+        student.setLastName(studentDTO.getLastName());
+        student.setEmail(studentDTO.getEmail());
+        student.setPassword(studentDTO.getPassword());
+        student.setContactNumber(studentDTO.getContactNumber());
+        student.setAddress(studentDTO.getAddress());
+        student.setInstituteName(studentDTO.getInstituteName());
+
+        // 7. දත්ත ටික සෙට් කරලා සේව් කරනවා
         student.setStudentRegId(generatedRegId);
         student.setBatch(batch);
+        student.setIsActive(true); // Default සේව් වෙද්දීම Active කරනවා
+
+        return studentRepository.save(student);
+    }
+
+    @Override
+    public Student updateStudent(Long id, StudentUpdateDTO dto) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        if (studentRepository.existsByEmailAndIdNot(dto.getEmail(), id)) {
+            throw new RuntimeException("Email already exists: " + dto.getEmail());
+        }
+
+        student.setFirstName(dto.getFirstName());
+        student.setLastName(dto.getLastName());
+        student.setEmail(dto.getEmail());
+        student.setContactNumber(dto.getContactNumber());
+        student.setAddress(dto.getAddress());
+        student.setInstituteName(dto.getInstituteName());
+
+        if (dto.getBatchId() != null && !student.getBatch().getId().equals(dto.getBatchId())) {
+            Batch newBatch = batchRepository.findById(dto.getBatchId())
+                    .orElseThrow(() -> new RuntimeException("Can't find that batch"));
+
+            String locName = newBatch.getLocation().getName();
+            String year = newBatch.getYear();
+
+            String prefix;
+            if (locName.equalsIgnoreCase("Online")) {
+                prefix = "ONL";
+            } else {
+                prefix = (locName.length() >= 4) ? locName.substring(0, 4).toUpperCase() : locName.toUpperCase();
+            }
+
+            long nextNumber = studentRepository.countByBatchId(newBatch.getId()) + 1;
+            String generatedRegId = String.format("%s/%s/%03d", prefix, year, nextNumber);
+
+            student.setStudentRegId(generatedRegId);
+            student.setBatch(newBatch);
+        }
 
         return studentRepository.save(student);
     }
 
     @Override
     public List<Student> getAllStudent() {
-        return studentRepository.findAll();
+        // ඩේටාබේස් එකේ ඉන්න සේරම ගන්නේ නැතුව Active අය විතරක් ගන්නවා (Soft Delete නිසා)
+        return studentRepository.findByIsActiveTrue();
     }
 
     @Override
     public List<Student> searchStudent(String keyword) {
+        // ඔයාගේ පරණ සර්ච් ලොජික් එක
         return studentRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrStudentRegIdContainingIgnoreCase(keyword, keyword, keyword);
+    }
+
+    @Override
+    public void deleteStudent(Long id) {
+        // Soft Delete ලොජික් එක: ළමයාව මකන්නේ නැතුව Inactive කරනවා
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ශිෂ්‍යයා සොයාගත නොහැකි විය!"));
+
+        student.setIsActive(false); // එයාව ඉවත් කළා (Inactive කළා)
+        studentRepository.save(student); // UPDATE එකක් විදිහට සේව් වෙනවා
     }
 }

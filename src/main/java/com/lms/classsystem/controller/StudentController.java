@@ -1,6 +1,8 @@
 package com.lms.classsystem.controller;
 
 
+import com.lms.classsystem.dto.StudentSaveDTO;
+import com.lms.classsystem.dto.StudentUpdateDTO;
 import com.lms.classsystem.entity.Student;
 import com.lms.classsystem.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +20,14 @@ public class StudentController {
 
     //Register student
     @PostMapping("/save")
-    public Student saveStudent(@RequestBody Student student){
+    public Student saveStudent(@RequestBody StudentSaveDTO student){
         return studentService.saveStudent(student);
+    }
+
+    //Update student
+    @PutMapping("/update/{id}")
+    public Student updateStudent(@PathVariable Long id, @RequestBody StudentUpdateDTO student){
+        return studentService.updateStudent(id, student);
     }
 
     //get all student
@@ -32,5 +40,11 @@ public class StudentController {
     @GetMapping("/search")
     public List<Student> searchStudent(@RequestParam String keyword ) {
         return studentService.searchStudent(keyword);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public String deleteStudent(@PathVariable Long id) {
+        studentService.deleteStudent(id);
+        return "ශිෂ්‍යයා පද්ධතියෙන් සාර්ථකව ඉවත් කරන ලදී!";
     }
 }
