@@ -125,7 +125,7 @@ public class StudentServiceImpl implements StudentService {
     public void deleteStudent(Long id) {
         // Soft Delete logic: student wa makanne nethuwa  Inactive karanawa
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("ශිෂ්‍යයා සොයාගත නොහැකි විය!"));
+                .orElseThrow(() -> new RuntimeException("Can't Find student"));
 
         student.setIsActive(false); // eyawa inactive karnawa
         studentRepository.save(student); // UPDATE ekak widiyt save karnawa
