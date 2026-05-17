@@ -4,6 +4,7 @@ import com.lms.classsystem.config.JwtTokenProvider;
 import com.lms.classsystem.dto.AuthResponseDTO;
 import com.lms.classsystem.dto.LoginRequestDTO;
 import com.lms.classsystem.dto.StudentSaveDTO;
+import com.lms.classsystem.dto.StudentResponseDTO;
 import com.lms.classsystem.entity.Student;
 import com.lms.classsystem.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,8 +53,20 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public Student registerUser(@RequestBody StudentSaveDTO studentDTO) {
+    public StudentResponseDTO registerUser(@RequestBody StudentSaveDTO studentDTO) {
         studentDTO.setPassword(passwordEncoder.encode(studentDTO.getPassword()));
-        return studentService.saveStudent(studentDTO);
+        Student savedStudent = studentService.saveStudent(studentDTO);
+        return new StudentResponseDTO(
+                savedStudent.getId(),
+                savedStudent.getStudentRegId(),
+                savedStudent.getFirstName(),
+                savedStudent.getLastName(),
+                savedStudent.getEmail(),
+                savedStudent.getContactNumber(),
+                savedStudent.getAddress(),
+                savedStudent.getInstituteName(),
+                savedStudent.getIsActive(),
+                savedStudent.getBatch() != null ? savedStudent.getBatch().getId() : null
+        );
     }
 }
