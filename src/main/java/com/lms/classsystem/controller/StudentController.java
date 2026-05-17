@@ -45,6 +45,6 @@ public class StudentController {
     @DeleteMapping("/delete/{id}")
     public String deleteStudent(@PathVariable Long id) {
         studentService.deleteStudent(id);
-        return "ශිෂ්‍යයා පද්ධතියෙන් සාර්ථකව ඉවත් කරන ලදී!";
+        return "student deleted";
     }
 }
