@@ -39,6 +39,9 @@ public class Student {
 
     private Boolean isActive = true; // අලුතින් රෙජිස්ටර් වෙන හැමෝම active විදිහට සේව් වෙන්න
 
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.STUDENT;
+
     @ManyToOne
     @JoinColumn(name = "batch_id")
     private Batch batch;

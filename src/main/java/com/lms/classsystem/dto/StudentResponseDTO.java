@@ -7,14 +7,15 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class StudentSaveDTO {
+public class StudentResponseDTO {
+    private Long id;
+    private String studentRegId;
     private String firstName;
     private String lastName;
     private String email;
-    private String password;
     private String contactNumber;
     private String address;
     private String instituteName;
-    private Boolean isActive = true;
+    private Boolean isActive;
     private Long batchId;
 }
