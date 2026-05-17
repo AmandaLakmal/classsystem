@@ -35,9 +35,9 @@ public class Student {
 
     private String address;
 
-    private String instituteName; // ළමයා එන ආයතනයේ නම (උදා: සීසුල, සක්යා)
+    private String instituteName; // student ena education center eke name eka
 
-    private Boolean isActive = true; // අලුතින් රෙජිස්ටර් වෙන හැමෝම active විදිහට සේව් වෙන්න
+    private Boolean isActive = true; // aluthen save wena hamoma active widiyata save wenawa
 
     @Enumerated(EnumType.STRING)
     private Role role = Role.STUDENT;

@@ -10,16 +10,16 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
 
-    // 1. ඊමේල් එකෙන් ශිෂ්‍යයෙක් ඉන්නවද බලන්න (Unique Email Check එකට)
+    // 1. email eken student kenek innwd balanawa (Unique Email Check ekt)
     Optional<Student> findByEmail(String email);
 
-    // 2. firstName, lastName හෝ registerId eken Student wa hoyන්න (ඔයාගේ පරණ කෝඩ් එක)
+    // 2. firstName, lastName ho registerId eken Student wa hoynn
     List<Student> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrStudentRegIdContainingIgnoreCase(String firstName, String lastName, String regId);
 
-    // 3. දීපු බැච් එකට අදාළව විතරක් ඉන්න ශිෂ්‍යයෝ ගණන ගන්න Query එකක්
+    // 3. deepu batch eke adalawa inna students la witharak ganna
     long countByBatchId(Long batchId);
 
-    // 4. දැනට Active ශිෂ්‍යයන් විතරක් ලබාගන්න (Soft Delete කරපු අය නැතුව)
+    // 4.  Active students witharak ganna (Soft Delete karapu aya nethuwa )
     List<Student> findByIsActiveTrue();
 
     boolean existsByEmail(String email);

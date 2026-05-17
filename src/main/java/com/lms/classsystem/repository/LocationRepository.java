@@ -8,7 +8,6 @@ import java.util.List;
 
 @Repository
 public interface LocationRepository extends JpaRepository<Location, Long> {
-    // JpaRepository හරහා Save, Delete, Find වගේ වැඩ ඔක්කොම ඉබේම ලැබෙනවා.
 
     List<Location> findByNameContainingIgnoreCase(String name);
 }
