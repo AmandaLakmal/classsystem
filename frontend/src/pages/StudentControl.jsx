@@ -11,7 +11,7 @@ const StudentControl = () => {
         const token = localStorage.getItem('token');
         
         // Fetching directly from your colleague's Spring Boot endpoint
-        const response = await fetch('http://localhost:8080/api/v1/student/getall', {
+        const response = await fetch('http://localhost:8080/api/v1/student/get-all', {      
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`, // Passing the secure token we caught at login
