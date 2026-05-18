@@ -24,7 +24,7 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Student saveStudent(StudentSaveDTO studentDTO) {
-        // 1. අලුත්: ඉස්සෙල්ලාම එවපු Email එකෙන් දැනටමත් ළමයෙක් ඉන්නවද බලනවා (ආරක්ෂාවට)
+        // 1. issella ewapu email eken lamek danatamath innawada balanawa (security)
         if (studentRepository.existsByEmail(studentDTO.getEmail())) {
             throw new RuntimeException("Email already exists: " + studentDTO.getEmail());
         }
@@ -37,7 +37,7 @@ public class StudentServiceImpl implements StudentService {
         String locName = batch.getLocation().getName(); // eg: "Gurumadala - Kalutara"
         String year = batch.getYear(); // eg: "2026"
 
-        // 4. ලොකේෂන් එක අනුව Prefix එක (GURU/ONL) තීරණය කරනවා (ඔයාගේ පරණ ලොජික් එක)
+        // 4. location eka anuwa Prefix ek (GURU/ONL) thirnaya karanawa (Old logic eka)
         String prefix;
         if (locName.equalsIgnoreCase("Online")) {
             prefix = "ONL";
@@ -46,10 +46,10 @@ public class StudentServiceImpl implements StudentService {
             prefix = (locName.length() >= 4) ? locName.substring(0, 4).toUpperCase() : locName.toUpperCase();
         }
 
-        // 5. අලුත් ID ලොජික්: මේ බැච් එකේ විතරක් දැනට ඉන්න ළමයි ගණන බලලා 1ක් එකතු කරනවා
+        // 5. ID logic: me batch eke inna lamai gana witharak balala agata ekak ekathu karanawa
         long nextNumber = studentRepository.countByBatchId(batch.getId()) + 1;
 
-        // 6. අවසාන Registration ID එක හදනවා (Format: GURU/2026/001)
+        // 6. awasana Registration ID eka hadanawa (Format: GURU/2026/001)
         String generatedRegId = String.format("%s/%s/%03d", prefix, year, nextNumber);
 
         Student student = new Student();
@@ -61,10 +61,10 @@ public class StudentServiceImpl implements StudentService {
         student.setAddress(studentDTO.getAddress());
         student.setInstituteName(studentDTO.getInstituteName());
 
-        // 7. දත්ත ටික සෙට් කරලා සේව් කරනවා
+        // 7. Data tika save karnawa
         student.setStudentRegId(generatedRegId);
         student.setBatch(batch);
-        student.setIsActive(true); // Default සේව් වෙද්දීම Active කරනවා
+        student.setIsActive(true); // Default save deddima  Active thiyanwa
 
         return studentRepository.save(student);
     }
@@ -111,23 +111,23 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public List<Student> getAllStudent() {
-        // ඩේටාබේස් එකේ ඉන්න සේරම ගන්නේ නැතුව Active අය විතරක් ගන්නවා (Soft Delete නිසා)
+        // Database eke inna serama ganne nethuwa Active aya witharak gannawa (Soft Delete nisa)
         return studentRepository.findByIsActiveTrue();
     }
 
     @Override
     public List<Student> searchStudent(String keyword) {
-        // ඔයාගේ පරණ සර්ච් ලොජික් එක
+        // Old search logic
         return studentRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrStudentRegIdContainingIgnoreCase(keyword, keyword, keyword);
     }
 
     @Override
     public void deleteStudent(Long id) {
-        // Soft Delete ලොජික් එක: ළමයාව මකන්නේ නැතුව Inactive කරනවා
+        // Soft Delete logic: student wa makanne nethuwa  Inactive karanawa
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("ශිෂ්‍යයා සොයාගත නොහැකි විය!"));
+                .orElseThrow(() -> new RuntimeException("Can't Find student"));
 
-        student.setIsActive(false); // එයාව ඉවත් කළා (Inactive කළා)
-        studentRepository.save(student); // UPDATE එකක් විදිහට සේව් වෙනවා
+        student.setIsActive(false); // eyawa inactive karnawa
+        studentRepository.save(student); // UPDATE ekak widiyt save karnawa
     }
 }
