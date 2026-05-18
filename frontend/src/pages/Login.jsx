@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
+  const navigate = useNavigate(); // <-- INJECTED AT THE TOP OF THE COMPONENT
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,17 +28,16 @@ export default function Login() {
 
       const data = await response.json();
       
-      // The backend (AuthResponseDTO) sends us 'token' and 'role'
       console.log("Authentication Successful. Role:", data.role);
       
-      // Store the secure token in the browser's local storage
-      localStorage.setItem('zerostate_jwt', data.token);
-      localStorage.setItem('zerostate_role', data.role);
+      // Store tokens with the 'zerostate_' prefix to match your state architecture
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.role);
 
-      // Temporarily change the UI to show success
       alert(`Access Granted. Welcome, ${data.role}. Redirecting to dashboard...`);
       
-      // TODO: Implement React Router to push to the dashboard
+      // PUSH USER PAST THE ROUTE GUARD
+      navigate('/admin/dashboard');
 
     } catch (err) {
       console.error(err);
@@ -70,11 +71,11 @@ export default function Login() {
           
           <div className="space-y-2">
             <label className="text-xs font-mono uppercase tracking-wider text-gray-400 block">
-                {error && (
-            <div className="bg-red-900/50 border border-red-500 text-red-400 p-3 text-xs font-mono uppercase tracking-wider mb-4">
-              [ SYSTEM_ERROR ] {error}
-            </div>
-          )}
+              {error && (
+                <div className="bg-red-900/50 border border-red-500 text-red-400 p-3 text-xs font-mono uppercase tracking-wider mb-4">
+                  [ SYSTEM_ERROR ] {error}
+                </div>
+              )}
               [ ID_CREDENTIAL ] // Email
             </label>
             <input 
