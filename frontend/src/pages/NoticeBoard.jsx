@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 
 const NoticeBoard = () => {
-  // Form State
+  // Broadcast Form State
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [batchId, setBatchId] = useState('');
   
-  // UI State
+  // Broadcast UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
-  // Mocked Notices (Until we wire up the Batch selector)
-  const recentNotices = [
-    { id: 1, title: "System Maintenance", content: "LMS Core will be down for 15 minutes at midnight.", date: "2026-05-18", batchId: "SYS-ALL" },
-    { id: 2, title: "Assignment Upload", content: "Please ensure your PDFs are under 5MB.", date: "2026-05-17", batchId: "GURU-2026" }
-  ];
+  // Live Feed State
+  const [liveNotices, setLiveNotices] = useState([]);
+  const [searchBatchId, setSearchBatchId] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const [feedStatus, setFeedStatus] = useState('Enter a Batch ID to sync feed.');
 
   const handleBroadcast = async (e) => {
     e.preventDefault();
@@ -24,7 +24,6 @@ const NoticeBoard = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Guessing the save endpoint based on his PDF conventions
       const response = await fetch('http://localhost:8080/api/v1/notice/save', {
         method: 'POST',
         headers: {
@@ -34,7 +33,7 @@ const NoticeBoard = () => {
         body: JSON.stringify({ 
           title: title, 
           content: content, 
-          batchId: batchId // Assuming his API expects the ID to link to the classroom
+          batchId: batchId.trim() === '' ? null : parseInt(batchId) 
         })
       });
 
@@ -42,7 +41,7 @@ const NoticeBoard = () => {
         throw new Error('Failed to broadcast notice. Check endpoint mapping.');
       }
 
-      setStatusMessage({ type: 'success', text: 'TRANSMISSION SUCCESSFUL: Notice broadcasted to batch.' });
+      setStatusMessage({ type: 'success', text: 'TRANSMISSION SUCCESSFUL: Notice broadcasted.' });
       setTitle('');
       setContent('');
       setBatchId('');
@@ -52,6 +51,42 @@ const NoticeBoard = () => {
       setStatusMessage({ type: 'error', text: `[ TRANSMISSION_FAILED ] ${error.message}` });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSyncFeed = async (e) => {
+    e.preventDefault();
+    if (!searchBatchId) return;
+
+    setIsFetching(true);
+    setFeedStatus('Querying database registries...');
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Hitting your colleague's exact GET endpoint
+      const response = await fetch(`http://localhost:8080/api/v1/notice/batch/${searchBatchId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch feed.');
+      }
+
+      const data = await response.json();
+      setLiveNotices(data);
+      setFeedStatus(data.length === 0 ? 'NO NOTICES FOUND FOR THIS BATCH.' : '');
+
+    } catch (error) {
+      console.error(error);
+      setFeedStatus('[ SYNC_FAILED ] Verify backend connection.');
+      setLiveNotices([]);
+    } finally {
+      setIsFetching(false);
     }
   };
 
@@ -80,10 +115,9 @@ const NoticeBoard = () => {
 
           <form onSubmit={handleBroadcast} className="space-y-4">
             <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">TARGET BATCH ID</label>
+              <label className="text-xs font-mono text-slate-500 mb-1 block">TARGET BATCH ID (Optional for Global)</label>
               <input 
                 type="text" 
-                required
                 value={batchId}
                 onChange={(e) => setBatchId(e.target.value)}
                 placeholder="e.g., 1 (Database ID)"
@@ -127,30 +161,53 @@ const NoticeBoard = () => {
           </form>
         </div>
 
-        {/* RIGHT PANEL: RECENT NOTICES */}
-        <div className="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl flex flex-col">
+        {/* RIGHT PANEL: LIVE COMM FEED */}
+        <div className="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl flex flex-col h-[550px]">
           <div className="flex justify-between items-center mb-6">
             <h4 className="text-sm font-mono text-slate-400 uppercase tracking-wider">Active Broadcasts</h4>
-            <span className="text-xs font-mono text-slate-500 border border-slate-700 px-2 py-1 rounded bg-slate-900">
-              Mock Data Mode
-            </span>
+            
+            {/* The Database Fetch Control */}
+            <form onSubmit={handleSyncFeed} className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Batch ID" 
+                value={searchBatchId}
+                onChange={(e) => setSearchBatchId(e.target.value)}
+                className="bg-slate-900 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-mono w-24 outline-none focus:border-emerald-500 transition-colors"
+              />
+              <button 
+                type="submit"
+                disabled={isFetching}
+                className="text-xs font-mono bg-slate-900 text-emerald-400 px-4 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500 transition-colors"
+              >
+                {isFetching ? 'SYNCING...' : 'SYNC FEED'}
+              </button>
+            </form>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-4">
-            {recentNotices.map(notice => (
-              <div key={notice.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <h5 className="font-semibold text-slate-200">{notice.title}</h5>
-                  <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                    BATCH: {notice.batchId}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-400">{notice.content}</p>
-                <div className="mt-3 text-[10px] font-mono text-slate-600">
-                  TIMESTAMP: {notice.date}
-                </div>
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            
+            {liveNotices.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs font-mono text-slate-600 uppercase tracking-widest border border-dashed border-slate-800 rounded-lg">
+                {feedStatus}
               </div>
-            ))}
+            ) : (
+              liveNotices.map((notice, index) => (
+                <div key={notice.id || index} className="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <h5 className="font-semibold text-slate-200">{notice.title}</h5>
+                    <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                      BATCH: {notice.batchId || 'GLOBAL'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-400">{notice.content}</p>
+                  <div className="mt-3 text-[10px] font-mono text-slate-600 uppercase">
+                    TIMESTAMP: {new Date(notice.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              ))
+            )}
+
           </div>
         </div>
 
