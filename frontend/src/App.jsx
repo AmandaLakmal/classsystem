@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import StudentControl from './pages/StudentControl';
 import NoticeBoard from './pages/NoticeBoard';
 import BatchSchedules from './pages/BatchSchedules';
+import AcademicModules from './pages/AcademicModules';
 
 // Simple placeholder view injection for testing layout
 const DashboardOverview = () => <div className="text-slate-300 font-mono">⚡ Welcome to the Main Dashboard Core View. System status nominal.</div>;
@@ -33,6 +34,7 @@ function App() {
           <Route path="students" element={<StudentControl />} />
           <Route path="notices" element={<NoticeBoard />} />
           <Route path="batches" element={<BatchSchedules />} />
+          <Route path="academic" element={<AcademicModules />} />
         </Route>
 
         {/* WILDCARD FALLBACK */}
