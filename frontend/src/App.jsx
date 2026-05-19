@@ -4,6 +4,7 @@ import Login from "./pages/Login"; // Your clean dark UI login component
 import AdminLayout from './layouts/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import StudentControl from './pages/StudentControl';
+import NoticeBoard from './pages/NoticeBoard';
 
 // Simple placeholder view injection for testing layout
 const DashboardOverview = () => <div className="text-slate-300 font-mono">⚡ Welcome to the Main Dashboard Core View. System status nominal.</div>;
@@ -30,6 +31,7 @@ function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardOverview />} />
           <Route path="students" element={<StudentControl />} />
+          <Route path="notices" element={<NoticeBoard />} />
           <Route path="batches" element={<BatchSchedules />} />
         </Route>
 
