@@ -5,11 +5,11 @@ import AdminLayout from './layouts/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import StudentControl from './pages/StudentControl';
 import NoticeBoard from './pages/NoticeBoard';
+import BatchSchedules from './pages/BatchSchedules';
 
 // Simple placeholder view injection for testing layout
 const DashboardOverview = () => <div className="text-slate-300 font-mono">⚡ Welcome to the Main Dashboard Core View. System status nominal.</div>;
 
-const BatchSchedules = () => <div className="text-slate-300 font-mono">📅 Batch & Class Course Allocation Rosters.</div>;
 
 function App() {
   return (
