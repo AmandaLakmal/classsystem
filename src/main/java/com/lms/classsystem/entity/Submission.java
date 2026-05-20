@@ -30,4 +30,12 @@ public class Submission {
     private LocalDateTime submittedAt = LocalDateTime.now();
 
     private boolean isLate;
+
+    // --- PHASE 2: GRADING ENGINE FIELDS ---
+    
+    @Column(name = "grade")
+    private Double grade;
+
+    @Column(name = "feedback", columnDefinition = "TEXT")
+    private String feedback;
 }

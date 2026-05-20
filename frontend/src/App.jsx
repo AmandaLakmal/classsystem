@@ -9,8 +9,8 @@ import BatchSchedules from './pages/BatchSchedules';
 import AcademicModules from './pages/AcademicModules';
 import Assignments from './pages/Assignments';
 import StudentDashboard from './pages/StudentDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
-const DashboardOverview = () => <div className="text-slate-300 font-mono">⚡ Welcome to the Main Dashboard Core View. System status nominal.</div>;
 
 function App() {
   return (
@@ -37,7 +37,7 @@ function App() {
         >
           {/* Nested Dashboard Sub-views mapping inside the Admin Layout Outlet */}
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardOverview />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="students" element={<StudentControl />} />
           <Route path="notices" element={<NoticeBoard />} />
           <Route path="batches" element={<BatchSchedules />} />

@@ -14,9 +14,11 @@ const StudentDashboard = () => {
   const [lessons, setLessons] = useState([]);
   const [assignments, setAssignments] = useState([]);
   
+  // NEW: State to track permanently submitted tasks
+  const [submittedTaskIds, setSubmittedTaskIds] = useState(new Set());
+  
   // --- Submission State ---
   const [activeUploadId, setActiveUploadId] = useState(null);
-  const [fileUrl, setFileUrl] = useState('');
   const [submitStatus, setSubmitStatus] = useState(null);
 
   // Helper: Extract YouTube ID
@@ -26,16 +28,11 @@ const StudentDashboard = () => {
     return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
   };
 
-  // Helper: Decode JWT without external libraries
   const parseJwt = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (e) {
-      return null;
-    }
+    try { return JSON.parse(atob(token.split('.')[1])); } 
+    catch (e) { return null; }
   };
 
-// 1. The Auto-Sync Sequence
   useEffect(() => {
     const initializePortal = async () => {
       const token = localStorage.getItem('token');
@@ -47,51 +44,50 @@ const StudentDashboard = () => {
       try {
         const decodedToken = parseJwt(token);
         const userEmail = decodedToken?.sub;
-
         if (!userEmail) throw new Error("Invalid token payload.");
 
         const headers = { 'Authorization': `Bearer ${token}` };
         let studentRecord = null;
 
-        // STRATEGY A: Try to fetch all students and find our email
+        // 1. Fetch Profile
         try {
           const allRes = await fetch(`http://localhost:8080/api/v1/student/get-all`, { headers });
           if (allRes.ok) {
             const allStudents = await allRes.json();
             studentRecord = allStudents.find(s => s.email === userEmail);
           }
-        } catch (e) {
-          console.warn("Could not fetch registry.");
-        }
+        } catch (e) { console.warn("Could not fetch registry."); }
 
-        // STRATEGY B: The Demo Fallback (If backend blocks get-all for students)
         if (!studentRecord) {
-          console.warn("[ SYSTEM OVERRIDE ] Backend blocked profile fetch. Initializing Demo Mode for Batch 1.");
-          studentRecord = { 
-            firstName: "Student", 
-            batch: { id: 1 }, 
-            batchId: 1 
-          };
+          studentRecord = { firstName: "Student", batch: { id: 1 }, batchId: 1 };
         }
-
         setProfile(studentRecord);
         const currentBatchId = studentRecord.batch?.id || studentRecord.batchId;
 
-        // C. Fetch Targeted Data
+        // 2. Fetch Targeted Data (Now includes their submission history!)
         const noticeReq = currentBatchId 
           ? fetch(`http://localhost:8080/api/v1/notice/batch/${currentBatchId}`, { headers })
           : Promise.resolve({ ok: true, json: () => [] });
-
         const assignmentReq = fetch(`http://localhost:8080/api/v1/assignment/get-all`, { headers });
         const lessonReq = fetch(`http://localhost:8080/api/v1/lession/get-all`, { headers });
+        const submissionReq = fetch(`http://localhost:8080/api/v1/submission/get-all`, { headers });
 
-        const [nRes, aRes, lRes] = await Promise.all([noticeReq, assignmentReq, lessonReq]);
+        const [nRes, aRes, lRes, sRes] = await Promise.all([noticeReq, assignmentReq, lessonReq, submissionReq]);
 
         if (nRes.ok) setNotices(await nRes.json());
         if (aRes.ok) setAssignments(await aRes.json());
         if (lRes.ok) {
           const allLessons = await lRes.json();
           setLessons(allLessons.filter(l => !l.batchId || l.batchId === currentBatchId));
+        }
+        
+        // NEW: Filter submissions to find ONLY this student's completed work
+        if (sRes.ok) {
+            const allSubs = await sRes.json();
+            const myCompletedIds = allSubs
+                .filter(sub => sub.student?.email === userEmail)
+                .map(sub => sub.assignment?.id);
+            setSubmittedTaskIds(new Set(myCompletedIds));
         }
 
       } catch (err) {
@@ -105,26 +101,38 @@ const StudentDashboard = () => {
     initializePortal();
   }, [navigate]);
 
-  // 2. Handle Assignment Submission
   const handleSubmitAssignment = async (e, assignmentId) => {
     e.preventDefault();
+    
+    const fileInput = document.getElementById(`file-input-${assignmentId}`);
+    const selectedFile = fileInput?.files[0];
+    
+    if (!selectedFile) {
+      alert("Please select a file before launching upload sequence.");
+      return;
+    }
+
     setSubmitStatus({ id: assignmentId, status: 'submitting' });
+
+    const formData = new FormData();
+    formData.append("assignmentId", assignmentId);
+    formData.append("studentId", profile?.id || 1); 
+    formData.append("file", selectedFile);
 
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8080/api/v1/submission/submit', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ assignmentId, fileUrl })
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
       });
 
       if (!response.ok) throw new Error('Submission rejected.');
 
+      // NEW: Permanently lock this task in the UI immediately after success
+      setSubmittedTaskIds(prev => new Set(prev).add(assignmentId));
+      
       setSubmitStatus({ id: assignmentId, status: 'success' });
-      setFileUrl('');
       setActiveUploadId(null);
       setTimeout(() => setSubmitStatus(null), 3000);
 
@@ -134,7 +142,6 @@ const StudentDashboard = () => {
     }
   };
 
-  // --- Render Loading / Error States ---
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -153,17 +160,15 @@ const StudentDashboard = () => {
     );
   }
 
-  // --- Main Dashboard Render ---
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
       
-      {/* Portal Header - Now completely automated */}
+      {/* Portal Header */}
       <div className="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h3 className="text-xl font-bold text-slate-100">Welcome, {profile?.firstName || 'Student'}</h3>
           <p className="text-xs text-slate-400 mt-1">Your learning materials and secure comms are synchronized.</p>
         </div>
-        
         <div className="flex gap-4">
           <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg text-center">
             <div className="text-[10px] font-mono text-slate-500 mb-1">COHORT ID</div>
@@ -184,8 +189,6 @@ const StudentDashboard = () => {
         
         {/* LEFT COLUMN: Notices & Assignments */}
         <div className="lg:col-span-1 space-y-6">
-          
-          {/* Notices Panel */}
           <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
             <div className="p-4 border-b border-slate-800 bg-slate-900/50">
                <h4 className="text-sm font-mono text-emerald-400 uppercase tracking-wider">Secure Comms</h4>
@@ -213,41 +216,59 @@ const StudentDashboard = () => {
               {assignments.length === 0 ? (
                 <p className="text-xs font-mono text-slate-600 text-center py-4">No pending assignments.</p>
               ) : (
-                assignments.map(task => (
-                  <div key={task.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h5 className="font-semibold text-slate-200">{task.title}</h5>
-                      <span className="text-[10px] font-mono text-rose-400 bg-rose-400/10 px-2 py-1 rounded border border-rose-400/20">
-                        DUE: {new Date(task.deadline).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mb-4">{task.description}</p>
-                    
-                    {activeUploadId === task.id ? (
-                      <form onSubmit={(e) => handleSubmitAssignment(e, task.id)} className="flex gap-2">
-                        <input 
-                          type="url" required placeholder="https://drive.google.com/..." 
-                          value={fileUrl} onChange={(e) => setFileUrl(e.target.value)}
-                          className="flex-1 bg-slate-950 border border-slate-700 text-slate-200 px-3 py-1.5 rounded text-xs outline-none focus:border-indigo-500"
-                        />
-                        <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">
-                          UPLOAD
+                assignments.map(task => {
+                  const isAlreadySubmitted = submittedTaskIds.has(task.id);
+
+                  return (
+                    <div key={task.id} className={`bg-slate-900 border rounded-lg p-4 transition-all ${isAlreadySubmitted ? 'border-emerald-900/50 opacity-75' : 'border-slate-800'}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <h5 className={`font-semibold ${isAlreadySubmitted ? 'text-emerald-400' : 'text-slate-200'}`}>{task.title}</h5>
+                        <span className={`text-[10px] font-mono px-2 py-1 rounded border ${isAlreadySubmitted ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-rose-400 bg-rose-400/10 border-rose-400/20'}`}>
+                          {isAlreadySubmitted ? 'COMPLETED' : `DUE: ${new Date(task.deadline).toLocaleDateString()}`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mb-4">{task.description}</p>
+                      
+                      {/* NEW: Render Logic prevents re-uploading */}
+                      {isAlreadySubmitted ? (
+                        <div className="w-full bg-emerald-950/30 text-emerald-500 py-2 rounded text-xs font-mono text-center border border-emerald-900/30">
+                          TRANSMISSION SECURED
+                        </div>
+                      ) : activeUploadId === task.id ? (
+                        <form onSubmit={(e) => handleSubmitAssignment(e, task.id)} className="flex flex-col gap-2">
+                          <input 
+                            type="file" 
+                            id={`file-input-${task.id}`}
+                            required 
+                            className="w-full text-xs text-slate-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 file:cursor-pointer"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button 
+                              type="button" 
+                              onClick={() => setActiveUploadId(null)}
+                              className="text-slate-400 hover:text-slate-200 text-xs px-2 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded text-xs font-bold transition-colors">
+                              {submitStatus?.id === task.id && submitStatus.status === 'submitting' ? 'UPLOADING...' : 'UPLOAD FILE'}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button 
+                          onClick={() => setActiveUploadId(task.id)}
+                          className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded text-xs font-mono transition-colors"
+                        >
+                          SUBMIT ASSIGNMENT
                         </button>
-                      </form>
-                    ) : (
-                      <button 
-                        onClick={() => setActiveUploadId(task.id)}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded text-xs font-mono transition-colors"
-                      >
-                        {submitStatus?.id === task.id && submitStatus.status === 'success' ? '✅ SUBMITTED' : 'ATTACH FILE URL'}
-                      </button>
-                    )}
-                  </div>
-                ))
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
-
         </div>
 
         {/* RIGHT COLUMN: Video Lessons */}
