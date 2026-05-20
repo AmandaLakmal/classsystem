@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from "./pages/Login"; // Your clean dark UI login component
+import Login from "./pages/Login"; 
 import AdminLayout from './layouts/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import StudentControl from './pages/StudentControl';
@@ -8,10 +8,9 @@ import NoticeBoard from './pages/NoticeBoard';
 import BatchSchedules from './pages/BatchSchedules';
 import AcademicModules from './pages/AcademicModules';
 import Assignments from './pages/Assignments';
+import StudentDashboard from './pages/StudentDashboard';
 
-// Simple placeholder view injection for testing layout
 const DashboardOverview = () => <div className="text-slate-300 font-mono">⚡ Welcome to the Main Dashboard Core View. System status nominal.</div>;
-
 
 function App() {
   return (
@@ -19,6 +18,13 @@ function App() {
       <Routes>
         {/* PUBLIC ACCESS CHANNELS */}
         <Route path="/" element={<Login />} />
+
+        {/* 1. MOVED: STUDENT PORTAL IS NOW A TOP-LEVEL SIBLING */}
+        <Route path="/student" element={
+          <div className="min-h-screen bg-[#020617] text-slate-200 p-6">
+            <StudentDashboard />
+          </div>
+        } />
 
         {/* PROTECTED CLIENT GATEWAYS (Requires valid token and Admin Authority) */}
         <Route 
