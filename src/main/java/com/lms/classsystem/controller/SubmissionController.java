@@ -1,9 +1,14 @@
 package com.lms.classsystem.controller;
 
+import com.lms.classsystem.dto.GradeRequestDTO;
+import com.lms.classsystem.entity.Submission;
+import com.lms.classsystem.repository.SubmissionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,9 +22,16 @@ import java.util.UUID;
 @CrossOrigin
 public class SubmissionController {
 
+    // Added the repository so we can save the grades to MySQL
+    @Autowired
+    private SubmissionRepository submissionRepository;
+
     @Value("${app.upload.dir}")
     private String uploadDir;
 
+    // ==========================================
+    // 1. THE FILE UPLOAD METHOD
+    // ==========================================
     @PostMapping("/submit")
     public ResponseEntity<?> submitAssignment(
             @RequestParam("assignmentId") Long assignmentId,
@@ -31,24 +43,20 @@ public class SubmissionController {
         }
 
         try {
-            // 1. Ensure the destination directory exists on your computer
             File directory = new File(uploadDir);
             if (!directory.exists()) {
                 directory.mkdirs();
             }
 
-            // 2. Generate a totally unique filename to avoid collisions
             String originalFileName = file.getOriginalFilename();
             String uniqueFileName = UUID.randomUUID().toString() + "_" + originalFileName;
             
-            // 3. Save the file to disk
             Path targetPath = Paths.get(uploadDir).resolve(uniqueFileName);
             Files.copy(file.getInputStream(), targetPath);
 
-            // 4. Calculate a web-accessible URL path for your DB entry
             String fileUrlPath = "/uploads/submissions/" + uniqueFileName;
 
-            // TODO: Call your submissionService here to save to MySQL!
+            // TODO: Call your submissionService here to save the initial upload to MySQL!
             // submissionService.save(assignmentId, studentId, fileUrlPath);
 
             return ResponseEntity.ok(Map.of(
@@ -59,6 +67,36 @@ public class SubmissionController {
 
         } catch (IOException e) {
             return ResponseEntity.status(500).body("File system write failure: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 2. THE NEW GRADING & FEEDBACK METHOD
+    // ==========================================
+    @PutMapping("/grade/{submissionId}")
+    public ResponseEntity<?> gradeSubmission(
+            @PathVariable Long submissionId, 
+            @RequestBody GradeRequestDTO gradeData) {
+        
+        try {
+            // Find the exact submission in the database
+            Submission submission = submissionRepository.findById(submissionId)
+                    .orElseThrow(() -> new RuntimeException("Submission record not found."));
+
+            // Apply the instructor's evaluation
+            submission.setGrade(gradeData.getGrade());
+            submission.setFeedback(gradeData.getFeedback());
+
+            // Save it back to MySQL
+            submissionRepository.save(submission);
+
+            return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "Evaluation successfully recorded."
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Grading system error: " + e.getMessage());
         }
     }
 }
