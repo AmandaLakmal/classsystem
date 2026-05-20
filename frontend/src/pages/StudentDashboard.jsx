@@ -16,7 +16,6 @@ const StudentDashboard = () => {
   
   // --- Submission State ---
   const [activeUploadId, setActiveUploadId] = useState(null);
-  const [fileUrl, setFileUrl] = useState('');
   const [submitStatus, setSubmitStatus] = useState(null);
 
   // Helper: Extract YouTube ID
@@ -35,7 +34,7 @@ const StudentDashboard = () => {
     }
   };
 
-// 1. The Auto-Sync Sequence
+  // 1. The Auto-Sync Sequence
   useEffect(() => {
     const initializePortal = async () => {
       const token = localStorage.getItem('token');
@@ -105,26 +104,38 @@ const StudentDashboard = () => {
     initializePortal();
   }, [navigate]);
 
-  // 2. Handle Assignment Submission
+  // 2. The Native File Submission Handler
   const handleSubmitAssignment = async (e, assignmentId) => {
     e.preventDefault();
+    
+    const fileInput = document.getElementById(`file-input-${assignmentId}`);
+    const selectedFile = fileInput?.files[0];
+    
+    if (!selectedFile) {
+      alert("Please select a file before launching upload sequence.");
+      return;
+    }
+
     setSubmitStatus({ id: assignmentId, status: 'submitting' });
+
+    const formData = new FormData();
+    formData.append("assignmentId", assignmentId);
+    formData.append("studentId", profile?.id || 1); 
+    formData.append("file", selectedFile);
 
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8080/api/v1/submission/submit', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ assignmentId, fileUrl })
+        body: formData
       });
 
       if (!response.ok) throw new Error('Submission rejected.');
 
       setSubmitStatus({ id: assignmentId, status: 'success' });
-      setFileUrl('');
       setActiveUploadId(null);
       setTimeout(() => setSubmitStatus(null), 3000);
 
@@ -157,7 +168,7 @@ const StudentDashboard = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
       
-      {/* Portal Header - Now completely automated */}
+      {/* Portal Header */}
       <div className="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h3 className="text-xl font-bold text-slate-100">Welcome, {profile?.firstName || 'Student'}</h3>
@@ -215,6 +226,8 @@ const StudentDashboard = () => {
               ) : (
                 assignments.map(task => (
                   <div key={task.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+                    
+                    {/* RESTORED: The Title and Description block */}
                     <div className="flex justify-between items-start mb-2">
                       <h5 className="font-semibold text-slate-200">{task.title}</h5>
                       <span className="text-[10px] font-mono text-rose-400 bg-rose-400/10 px-2 py-1 rounded border border-rose-400/20">
@@ -223,23 +236,34 @@ const StudentDashboard = () => {
                     </div>
                     <p className="text-xs text-slate-400 mb-4">{task.description}</p>
                     
+                    {/* The New File Upload Form */}
                     {activeUploadId === task.id ? (
-                      <form onSubmit={(e) => handleSubmitAssignment(e, task.id)} className="flex gap-2">
+                      <form onSubmit={(e) => handleSubmitAssignment(e, task.id)} className="flex flex-col gap-2">
                         <input 
-                          type="url" required placeholder="https://drive.google.com/..." 
-                          value={fileUrl} onChange={(e) => setFileUrl(e.target.value)}
-                          className="flex-1 bg-slate-950 border border-slate-700 text-slate-200 px-3 py-1.5 rounded text-xs outline-none focus:border-indigo-500"
+                          type="file" 
+                          id={`file-input-${task.id}`}
+                          required 
+                          className="w-full text-xs text-slate-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 file:cursor-pointer"
                         />
-                        <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">
-                          UPLOAD
-                        </button>
+                        <div className="flex gap-2 justify-end">
+                          <button 
+                            type="button" 
+                            onClick={() => setActiveUploadId(null)}
+                            className="text-slate-400 hover:text-slate-200 text-xs px-2 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded text-xs font-bold transition-colors">
+                            {submitStatus?.id === task.id && submitStatus.status === 'submitting' ? 'UPLOADING...' : 'UPLOAD FILE'}
+                          </button>
+                        </div>
                       </form>
                     ) : (
                       <button 
                         onClick={() => setActiveUploadId(task.id)}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded text-xs font-mono transition-colors"
                       >
-                        {submitStatus?.id === task.id && submitStatus.status === 'success' ? '✅ SUBMITTED' : 'ATTACH FILE URL'}
+                        {submitStatus?.id === task.id && submitStatus.status === 'success' ? '✅ SUBMITTED' : 'SUBMIT ASSIGNMENT'}
                       </button>
                     )}
                   </div>

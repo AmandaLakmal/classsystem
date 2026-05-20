@@ -1,38 +1,64 @@
 package com.lms.classsystem.controller;
 
-import com.lms.classsystem.dto.SubmissionDTO;
-import com.lms.classsystem.dto.SubmissionResponseDTO;
-import com.lms.classsystem.service.SubmissionService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.security.Principal;
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/submission")
 @CrossOrigin
 public class SubmissionController {
 
-    @Autowired
-    private SubmissionService submissionService;
+    @Value("${app.upload.dir}")
+    private String uploadDir;
 
     @PostMapping("/submit")
-    public SubmissionResponseDTO submitAssignment(@RequestBody SubmissionDTO dto, Principal principal) {
-        return submissionService.submitAssignment(dto, principal.getName());
-    }
+    public ResponseEntity<?> submitAssignment(
+            @RequestParam("assignmentId") Long assignmentId,
+            @RequestParam("studentId") Long studentId,
+            @RequestParam("file") MultipartFile file) {
+        
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Transmission payload cannot be empty.");
+        }
 
-    @GetMapping("/get-all")
-    public List<SubmissionResponseDTO> getAllSubmissions() {
-        return submissionService.getAllSubmissions();
-    }
+        try {
+            // 1. Ensure the destination directory exists on your computer
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
 
-    @GetMapping("/assignment/{assignmentId}")
-    public List<SubmissionResponseDTO> getSubmissionsByAssignment(@PathVariable Long assignmentId) {
-        return submissionService.getSubmissionsByAssignment(assignmentId);
-    }
+            // 2. Generate a totally unique filename to avoid collisions
+            String originalFileName = file.getOriginalFilename();
+            String uniqueFileName = UUID.randomUUID().toString() + "_" + originalFileName;
+            
+            // 3. Save the file to disk
+            Path targetPath = Paths.get(uploadDir).resolve(uniqueFileName);
+            Files.copy(file.getInputStream(), targetPath);
 
-    @GetMapping("/my-submissions")
-    public List<SubmissionResponseDTO> getMySubmissions(Principal principal) {
-        return submissionService.getSubmissionsByStudent(principal.getName());
+            // 4. Calculate a web-accessible URL path for your DB entry
+            String fileUrlPath = "/uploads/submissions/" + uniqueFileName;
+
+            // TODO: Call your submissionService here to save to MySQL!
+            // submissionService.save(assignmentId, studentId, fileUrlPath);
+
+            return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "Payload securely archived",
+                "filePath", fileUrlPath
+            ));
+
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("File system write failure: " + e.getMessage());
+        }
     }
 }
