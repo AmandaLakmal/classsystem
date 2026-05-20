@@ -9,43 +9,42 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+      e.preventDefault();
+      setIsLoading(true);
+      setError('');
 
-    try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      try {
+        const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
 
-      if (!response.ok) {
-        throw new Error('Authentication failed. Verify credentials and backend connection.');
+        if (!response.ok) {
+          throw new Error('Invalid transmission credentials');
+        }
+
+        // 1. Capture the AuthResponseDTO
+        const data = await response.json(); 
+        
+        // 2. Lock the token AND role into local storage
+        console.log(data)
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+
+        // 3. The Smart Router Fork
+        if (data.role === 'ROLE_ADMIN' || data.role === 'SUPER_ADMIN') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/student');
+        }
+
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
       }
-
-      const data = await response.json();
-      
-      console.log("Authentication Successful. Role:", data.role);
-      
-      // Store tokens with the 'zerostate_' prefix to match your state architecture
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.role);
-
-      alert(`Access Granted. Welcome, ${data.role}. Redirecting to dashboard...`);
-      
-      // PUSH USER PAST THE ROUTE GUARD
-      navigate('/admin/dashboard');
-
-    } catch (err) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
   return (
     <div className="min-h-screen bg-[#0F1115] flex flex-col justify-center items-center p-4 font-sans text-[#CCCCCC]">

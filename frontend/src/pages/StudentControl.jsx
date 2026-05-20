@@ -6,27 +6,28 @@ const StudentControl = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        
-        // Fetching directly from your colleague's Spring Boot endpoint
-        const response = await fetch('http://localhost:8080/api/v1/student/get-all', {      
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`, // Passing the secure token we caught at login
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Server returned status ${response.status}`);
+  const fetchStudents = async () => {
+    try {
+      // 1. Grab the token from local storage
+      const token = localStorage.getItem('token');
+      
+      // 2. Attach it to the Authorization header
+      const response = await fetch('http://localhost:8080/api/v1/student/get-all', {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
+      });
 
-        const data = await response.json();
-        setStudents(data);
-      } catch (err) {
-        console.error("Data fetch exception:", err);
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status}`);
+      }
+
+      const data = await response.json();
+      setStudents(data);
+      
+    } catch (error) {
+      console.error("Data fetch exception:", error);
         setError('Failed to retrieve student roster. Verify upstream connection.');
       } finally {
         setLoading(false);
