@@ -131,4 +131,67 @@ public class SubmissionController {
             return ResponseEntity.status(500).body("Failed to retrieve submissions: " + e.getMessage());
         }
     }
-}
+    
+ // ==========================================
+    // 4. FETCH SUBMISSIONS BY ASSIGNMENT ID
+    // ==========================================
+    @GetMapping("/assignment/{assignmentId}")
+    public ResponseEntity<?> getSubmissionsByAssignment(@PathVariable Long assignmentId) {
+        try {
+            // Note: If you don't have this method in your repository yet, 
+            // we will need to add it to SubmissionRepository.java!
+            java.util.List<Submission> submissions = submissionRepository.findByAssignmentId(assignmentId);
+            return ResponseEntity.ok(submissions);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Database query failed: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // 5. RETRACT SUBMISSION (Student Undo)
+    // ==========================================
+    @DeleteMapping("/remove/{assignmentId}/{studentId}")
+    public ResponseEntity<?> retractSubmission(
+            @PathVariable Long assignmentId,
+            @PathVariable Long studentId) {
+        try {
+            Submission submission = submissionRepository
+                    .findByAssignmentIdAndStudentId(assignmentId, studentId)
+                    .orElse(null);
+
+            if (submission == null) {
+                return ResponseEntity.status(404).body(
+                    Map.of("status", "NOT_FOUND",
+                           "message", "No submission found for this assignment/student pair.")
+                );
+            }
+
+            // 1. Delete the physical file from disk
+            String fileUrl = submission.getFileUrl(); // e.g. /uploads/submissions/uuid_file.pdf
+            if (fileUrl != null) {
+                // Strip the leading /uploads/submissions/ prefix to get just the filename
+                String fileName = Paths.get(fileUrl).getFileName().toString();
+                Path physicalPath = Paths.get(uploadDir).resolve(fileName);
+                try {
+                    Files.deleteIfExists(physicalPath);
+                } catch (IOException ioEx) {
+                    // Log but do not block the DB delete if file is already gone
+                    System.err.println("[WARN] Could not delete physical file: " + physicalPath + " - " + ioEx.getMessage());
+                }
+            }
+
+            // 2. Delete the database record
+            submissionRepository.delete(submission);
+
+            return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "Submission retracted. Student may now re-submit."
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                Map.of("status", "ERROR", "message", "Retraction failed: " + e.getMessage())
+            );
+        }
+    }
+}

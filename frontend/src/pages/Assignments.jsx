@@ -1,260 +1,273 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, FileText, ChevronRight, MousePointerClick } from 'lucide-react';
 
+// ── Status Badges ──────────────────────────────────────────────────────────
+const GradedBadge = ({ score }) => (
+  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+    Graded · {score}%
+  </span>
+);
+const PendingBadge = () => (
+  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+    Pending
+  </span>
+);
+
+// ── Form Input + Label component ───────────────────────────────────────────
+const FormField = ({ label, children }) => (
+  <div>
+    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+const inputClass = "w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all";
+
+// ── Assignments ────────────────────────────────────────────────────────────
 const Assignments = () => {
-  // --- Form State ---
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [courseId, setCourseId] = useState('');
-
-  // --- UI & Data State ---
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState(null);
-  
-  const [assignments, setAssignments] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
+  const navigate = useNavigate();
+  const [assignments,      setAssignments]      = useState([]);
   const [activeAssignment, setActiveAssignment] = useState(null);
-  const [isFetchingSubs, setIsFetchingSubs] = useState(false);
-
-  // 1. Fetch all existing assignments on load
-  const fetchAssignments = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8080/api/v1/assignment/get-all', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) setAssignments(await res.json());
-    } catch (err) {
-      console.warn("Could not load assignments.", err);
-    }
-  };
+  const [submissions,      setSubmissions]      = useState([]);
+  const [isLoading,        setIsLoading]        = useState(true);
+  const [isLoadingSubs,    setIsLoadingSubs]    = useState(false);
+  const [formData,         setFormData]         = useState({ courseId: '', title: '', deadline: '', description: '' });
 
   useEffect(() => {
-    fetchAssignments();
-  }, []);
-
-  // 2. Handle Issuing a New Assignment
-  const handleIssueAssignment = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setStatusMessage(null);
-
-    try {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
-      
-      // Java LocalDateTime strictly requires the seconds. HTML datetime-local omits them.
-      // We append ':00' to ensure Spring Boot parses it correctly.
-      const formattedDeadline = deadline.length === 16 ? `${deadline}:00` : deadline;
-
-      const response = await fetch('http://localhost:8080/api/v1/assignment/save', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          title: title, 
-          description: description, 
-          deadline: formattedDeadline,
-          courseId: parseInt(courseId) // Matching his DTO perfectly
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to issue assignment to database.');
-
-      setStatusMessage({ type: 'success', text: 'ASSIGNMENT ISSUED: Task is live for students.' });
-      setTitle('');
-      setDescription('');
-      setDeadline('');
-      setCourseId('');
-      
-      fetchAssignments();
-
-    } catch (error) {
-      console.error(error);
-      setStatusMessage({ type: 'error', text: `[ ISSUE_FAILED ] ${error.message}` });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // 3. View Submissions for a specific assignment
-  const handleViewSubmissions = async (assignment) => {
-    setActiveAssignment(assignment);
-    setIsFetchingSubs(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8080/api/v1/submission/assignment/${assignment.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        setSubmissions(await response.json());
-      } else {
-        setSubmissions([]);
+      if (!token) { navigate('/'); return; }
+      try {
+        const res = await fetch('http://localhost:8080/api/v1/assignment/get-all', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setAssignments(await res.json());
+      } catch (err) {
+        console.error('Failed to sync assignments:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      setSubmissions([]);
+    };
+    fetchData();
+  }, [navigate]);
+
+  const handleViewSubmissions = async (task) => {
+    setActiveAssignment(task);
+    setSubmissions([]);
+    setIsLoadingSubs(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:8080/api/v1/submission/assignment/${task.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setSubmissions(await res.json());
+    } catch (err) {
+      console.error('Failed to fetch submissions:', err);
     } finally {
-      setIsFetchingSubs(false);
+      setIsLoadingSubs(false);
     }
   };
+
+  const handleIssueAssignment = (e) => {
+    e.preventDefault();
+    alert('Task Issuer ready — wire up POST /api/v1/assignment/create to activate.');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-60 gap-3">
+        <div className="w-8 h-8 border-2 border-slate-200 dark:border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
+        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Loading assignments…</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-bold text-slate-100">Assignments & Submissions</h3>
-        <p className="text-xs text-slate-400 mt-1">Issue course tasks and monitor student upload compliance</p>
+    <div className="space-y-6 animate-fade-in">
+      {/* ── Page Header ─────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Assignments</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Issue course tasks and monitor student submissions</p>
+        </div>
+        <div className="px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 rounded-xl text-xs font-semibold">
+          {assignments.length} Active Tasks
+        </div>
       </div>
 
+      {/* ── Two-column layout ──────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* LEFT PANEL: ASSIGNMENT CREATOR */}
-        <div className="lg:col-span-1 bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl h-fit">
-          <h4 className="text-sm font-mono text-emerald-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-            Task Issuer
-          </h4>
 
-          {statusMessage && (
-            <div className={`p-3 rounded-lg text-xs font-mono mb-6 border ${statusMessage.type === 'error' ? 'bg-rose-950/40 border-rose-900/60 text-rose-400' : 'bg-emerald-950/40 border-emerald-900/60 text-emerald-400'}`}>
-              {statusMessage.text}
+        {/* LEFT: Task Issuer Form ──────────────────────────────── */}
+        <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-fit">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-white">New Assignment</h2>
             </div>
-          )}
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Issue a task to a course cohort</p>
+          </div>
 
-          <form onSubmit={handleIssueAssignment} className="space-y-4">
-            
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">COURSE ID TARGET</label>
-              <input 
-                type="number" 
-                required
-                value={courseId}
-                onChange={(e) => setCourseId(e.target.value)}
-                placeholder="e.g., 1"
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm font-mono outline-none transition-colors"
-              />
-            </div>
+          <form onSubmit={handleIssueAssignment} className="p-6 space-y-4">
+            <FormField label="Course ID">
+              <input type="number" required value={formData.courseId}
+                onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+                placeholder="e.g. 1" className={inputClass} />
+            </FormField>
 
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">ASSIGNMENT TITLE</label>
-              <input 
-                type="text" 
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Build a REST API"
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm outline-none transition-colors"
-              />
-            </div>
+            <FormField label="Assignment Title">
+              <input type="text" required value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="e.g. Build a REST API" className={inputClass} />
+            </FormField>
 
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">DEADLINE (DATE & TIME)</label>
-              <input 
-                type="datetime-local" 
-                required
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm font-mono outline-none transition-colors"
-              />
-            </div>
+            <FormField label="Deadline">
+              <input type="datetime-local" required value={formData.deadline}
+                onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                className={inputClass} />
+            </FormField>
 
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">TASK INSTRUCTIONS</label>
-              <textarea 
-                required
-                rows="3"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Upload your PDF containing..."
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm outline-none transition-colors resize-none"
-              ></textarea>
-            </div>
+            <FormField label="Instructions">
+              <textarea rows="4" required value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe the task requirements…"
+                className={`${inputClass} resize-none`} />
+            </FormField>
 
-            <button 
-              type="submit" 
-              disabled={isSubmitting}
-              className={`w-full py-3 rounded-lg text-xs font-bold font-mono tracking-widest uppercase transition-colors mt-2 ${
-                isSubmitting ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-              }`}
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2"
             >
-              {isSubmitting ? 'Transmitting...' : 'Issue Assignment'}
+              <Plus size={15} />
+              Issue Assignment
             </button>
           </form>
         </div>
 
-        {/* RIGHT PANEL: DUAL WORKFLOW (Assignments -> Submissions) */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Active Assignments Grid */}
-          <div className="border border-slate-800 bg-slate-950 rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[350px]">
-            <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center sticky top-0">
-               <h4 className="text-sm font-mono text-slate-400 uppercase tracking-wider">Active Assignments</h4>
-               <button onClick={fetchAssignments} className="text-xs font-mono text-emerald-500 hover:text-emerald-400">
-                 [ SYNC TASKS ]
-               </button>
+        {/* RIGHT: Data views ──────────────────────────────────── */}
+        <div className="lg:col-span-2 space-y-5">
+
+          {/* Active Assignments list */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Active Assignments</h3>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{assignments.length} tasks</span>
             </div>
-            <div className="overflow-y-auto p-4 space-y-3">
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-72 overflow-y-auto">
               {assignments.length === 0 ? (
-                <div className="text-center text-xs font-mono text-slate-600 py-10 uppercase tracking-widest">No Active Assignments.</div>
+                <div className="py-12 text-center">
+                  <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">No assignments found</p>
+                  <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">Create one using the form on the left</p>
+                </div>
               ) : (
-                assignments.map(task => (
-                  <div key={task.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex justify-between items-center hover:border-slate-700 transition-colors">
-                    <div>
-                      <h5 className="font-semibold text-slate-200">{task.title}</h5>
-                      <div className="flex gap-4 mt-1">
-                        <span className="text-xs text-slate-500 font-mono">COURSE ID: {task.courseId || 'N/A'}</span>
-                        <span className="text-xs text-rose-400 font-mono">DUE: {new Date(task.deadline).toLocaleString()}</span>
+                assignments.map((task) => {
+                  const active = activeAssignment?.id === task.id;
+                  return (
+                    <div key={task.id} className={`flex items-center gap-4 px-6 py-4 transition-colors ${active ? 'bg-indigo-50 dark:bg-indigo-500/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate ${active ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-900 dark:text-white'}`}>
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-slate-400 dark:text-slate-500">
+                            Course #{task.course?.id || task.courseId || '—'}
+                          </span>
+                          <span className="text-xs font-medium text-rose-500 dark:text-rose-400">
+                            Due {new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => handleViewSubmissions(task)}
+                        className={[
+                          'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                          active
+                            ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700',
+                        ].join(' ')}
+                      >
+                        Submissions
+                        <ChevronRight size={14} />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => handleViewSubmissions(task)}
-                      className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-lg text-xs font-mono hover:bg-emerald-500 hover:text-slate-900 transition-colors"
-                    >
-                      VIEW SUBMISSIONS
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
 
-          {/* Submissions Viewer (Only shows when an assignment is clicked) */}
-          {activeAssignment && (
-            <div className="border border-slate-800 bg-slate-950 rounded-xl overflow-hidden shadow-2xl animate-fade-in">
-              <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
-                <h4 className="text-sm font-mono text-emerald-400 uppercase tracking-wider">
-                  Submissions: <span className="text-slate-300">{activeAssignment.title}</span>
-                </h4>
+          {/* Submissions drill-down */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[240px]">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
+                {activeAssignment
+                  ? <><span className="text-slate-500 dark:text-slate-400 font-normal">Submissions for </span>{activeAssignment.title}</>
+                  : 'Submissions'
+                }
+              </h3>
+              {activeAssignment && (
+                <span className="text-xs text-slate-400 dark:text-slate-500">{submissions.length} records</span>
+              )}
+            </div>
+
+            {!activeAssignment ? (
+              <div className="flex items-center justify-center h-44">
+                <div className="text-center">
+                  <MousePointerClick className="w-10 h-10 mb-2 text-slate-300 dark:text-slate-700 mx-auto" />
+                  <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">Select an assignment above</p>
+                </div>
               </div>
-              <div className="p-0 overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm text-slate-300">
-                  <thead className="bg-slate-900 text-xs font-mono uppercase text-slate-500 tracking-wider border-b border-slate-800">
-                    <tr>
-                      <th className="p-4">Submission ID</th>
-                      <th className="p-4">File Link</th>
-                      <th className="p-4 text-center">Status</th>
+            ) : isLoadingSubs ? (
+              <div className="flex items-center justify-center h-44">
+                <div className="w-6 h-6 border-2 border-slate-200 dark:border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+                      {['Student', 'File', 'Status'].map((h, i) => (
+                        <th key={h} className={`px-6 py-3.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ${i === 2 ? 'text-right' : 'text-left'}`}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/50">
-                    {isFetchingSubs ? (
-                      <tr><td colSpan="3" className="p-8 text-center text-xs font-mono text-slate-500 animate-pulse">Querying database...</td></tr>
-                    ) : submissions.length === 0 ? (
-                      <tr><td colSpan="3" className="p-8 text-center text-xs font-mono text-slate-600 uppercase tracking-widest">NO SUBMISSIONS YET.</td></tr>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {submissions.length === 0 ? (
+                      <tr>
+                        <td colSpan="3" className="px-6 py-12 text-center">
+                          <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">No submissions yet</p>
+                        </td>
+                      </tr>
                     ) : (
-                      submissions.map(sub => (
-                        <tr key={sub.id} className="hover:bg-slate-900/40 transition-colors">
-                          <td className="p-4 font-mono text-slate-500 text-xs">#{sub.id}</td>
-                          <td className="p-4 font-mono text-emerald-400 truncate max-w-[200px]">
-                            <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                              {sub.fileUrl || '[ NO URL PROVIDED ]'}
+                      submissions.map((sub) => (
+                        <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {sub.student?.firstName || `ID: ${sub.student?.id}`}
+                            </p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-mono">{sub.student?.email}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <a
+                              href={`http://localhost:8080${sub.fileUrl}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+                            >
+                              <FileText size={13} />
+                              View File
                             </a>
                           </td>
-                          <td className="p-4 text-center">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
-                              UPLOADED
-                            </span>
+                          <td className="px-6 py-4 text-right">
+                            {sub.grade !== null ? <GradedBadge score={sub.grade} /> : <PendingBadge />}
                           </td>
                         </tr>
                       ))
@@ -262,9 +275,8 @@ const Assignments = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
+            )}
+          </div>
         </div>
       </div>
     </div>

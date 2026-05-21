@@ -1,46 +1,119 @@
-import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Inbox } from 'lucide-react';
 
+// ── Shared UI Primitives ───────────────────────────────────────────────────
+const Spinner = ({ color = 'indigo' }) => (
+  <div className="flex flex-col items-center justify-center h-60 gap-3">
+    <div className={`w-8 h-8 border-3 border-slate-200 dark:border-slate-700 border-t-${color}-600 rounded-full animate-spin`} />
+    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Loading data…</p>
+  </div>
+);
+
+const StatusBadge = ({ graded, score }) => graded ? (
+  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+    Graded · {score}%
+  </span>
+) : (
+  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+    Pending Review
+  </span>
+);
+
+// ── Grading Modal ──────────────────────────────────────────────────────────
+const GradingModal = ({ submission, onClose, onSubmit, gradeInput, setGradeInput, feedbackInput, setFeedbackInput, isSubmitting }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm"
+    onClick={(e) => e.target === e.currentTarget && onClose()}
+  >
+    <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl animate-fade-in overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-slate-900 dark:text-white">Evaluate Submission</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {submission.student?.firstName} · {submission.assignment?.title}
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors text-lg"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Body */}
+      <form onSubmit={onSubmit} className="p-6 space-y-5">
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            Final Score (%)
+          </label>
+          <input
+            type="number" min="0" max="100" step="0.1" required
+            value={gradeInput}
+            onChange={(e) => setGradeInput(e.target.value)}
+            placeholder="e.g. 85.5"
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            Instructor Feedback
+          </label>
+          <textarea
+            rows="4"
+            value={feedbackInput}
+            onChange={(e) => setFeedbackInput(e.target.value)}
+            placeholder="Leave constructive feedback for the student…"
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
+          />
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            type="button" onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit" disabled={isSubmitting}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-indigo-500/30"
+          >
+            {isSubmitting ? 'Saving…' : 'Commit Evaluation'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+);
+
+// ── AdminDashboard ─────────────────────────────────────────────────────────
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  
-  const [submissions, setSubmissions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Grading Modal State
+  const [submissions,      setSubmissions]      = useState([]);
+  const [isLoading,        setIsLoading]        = useState(true);
   const [activeSubmission, setActiveSubmission] = useState(null);
-  const [gradeInput, setGradeInput] = useState('');
-  const [feedbackInput, setFeedbackInput] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gradeInput,       setGradeInput]       = useState('');
+  const [feedbackInput,    setFeedbackInput]    = useState('');
+  const [isSubmitting,     setIsSubmitting]     = useState(false);
 
   useEffect(() => {
-    // Standard auth check
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+    if (!token) { navigate('/'); return; }
 
     const fetchSubmissions = async () => {
       try {
-        const headers = { 'Authorization': `Bearer ${token}` };
-        
-        // NOTE: We assume your colleague built a get-all endpoint for submissions.
-        // If not, we will quickly add one to the backend next!
-        const res = await fetch(`http://localhost:8080/api/v1/submission/get-all`, { headers });
-        
+        const res = await fetch('http://localhost:8080/api/v1/submission/get-all', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (res.ok) {
           const data = await res.json();
-          // Sort so ungraded submissions are at the top
           data.sort((a, b) => (a.grade === null ? -1 : 1));
           setSubmissions(data);
-        } else {
-          console.warn("Could not fetch submissions. Endpoint might be missing.");
-          // Fallback dummy data for UI testing if the backend endpoint isn't ready
-          setSubmissions([
-            { id: 101, student: { firstName: "John", email: "student@test.com" }, assignment: { title: "Build a REST API" }, submittedAt: new Date().toISOString(), fileUrl: "/uploads/dummy.pdf", grade: null, feedback: null },
-            { id: 102, student: { firstName: "Alice", email: "alice@test.com" }, assignment: { title: "Database Schema Design" }, submittedAt: new Date().toISOString(), fileUrl: "/uploads/dummy2.pdf", grade: 95, feedback: "Excellent normalization." }
-          ]);
         }
       } catch (err) {
         console.error(err);
@@ -48,201 +121,148 @@ const AdminDashboard = () => {
         setIsLoading(false);
       }
     };
-
     fetchSubmissions();
   }, [navigate]);
 
   const handleOpenGrading = (sub) => {
     setActiveSubmission(sub);
-    setGradeInput(sub.grade || '');
-    setFeedbackInput(sub.feedback || '');
+    setGradeInput(sub.grade ?? '');
+    setFeedbackInput(sub.feedback ?? '');
   };
 
   const submitGrade = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
-      const token = localStorage.getItem('token');
-      const payload = {
-        grade: parseFloat(gradeInput),
-        feedback: feedbackInput
-      };
-
-      const res = await fetch(`http://localhost:8080/api/v1/submission/grade/${activeSubmission.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) throw new Error("Grading failed");
-
-      // Update local state to reflect the new grade instantly
-      setSubmissions(prev => prev.map(sub => 
-        sub.id === activeSubmission.id 
-          ? { ...sub, grade: payload.grade, feedback: payload.feedback } 
-          : sub
-      ));
-      
+      const token   = localStorage.getItem('token');
+      const payload = { grade: parseFloat(gradeInput), feedback: feedbackInput };
+      const res = await fetch(
+        `http://localhost:8080/api/v1/submission/grade/${activeSubmission.id}`,
+        { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+      );
+      if (!res.ok) throw new Error('Grading failed');
+      setSubmissions(prev => prev.map(s => s.id === activeSubmission.id ? { ...s, ...payload } : s));
       setActiveSubmission(null);
-    } catch (error) {
-      alert("Failed to sync grade with database.");
+    } catch {
+      alert('Failed to sync grade with database.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-indigo-500 font-mono text-sm animate-pulse">INITIALIZING ADMIN SECURE PORTAL...</div>;
-  }
+  if (isLoading) return <Spinner color="indigo" />;
+
+  const pending = submissions.filter(s => s.grade === null).length;
+  const graded  = submissions.length - pending;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in relative">
-      
-      {/* Header */}
-      <div className="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl flex justify-between items-center">
-        <div>
-          <h3 className="text-xl font-bold text-slate-100 uppercase tracking-widest">Administrator Console</h3>
-          <p className="text-xs text-slate-400 mt-1 font-mono">Submission Evaluation Engine</p>
+    <>
+      <div className="space-y-6 animate-fade-in">
+        {/* ── Stats row ────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { label: 'Total Submissions', value: submissions.length, color: 'text-slate-900 dark:text-white', bg: 'bg-white dark:bg-slate-900' },
+            { label: 'Pending Review',    value: pending,            color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+            { label: 'Graded',           value: graded,             color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+          ].map(({ label, value, color, bg }) => (
+            <div key={label} className={`${bg} rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm`}>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</p>
+              <p className={`text-3xl font-bold mt-1 ${color}`}>{value}</p>
+            </div>
+          ))}
         </div>
-        <button 
-          onClick={() => { localStorage.clear(); navigate('/'); }}
-          className="border border-rose-900/50 text-rose-400 hover:bg-rose-950/30 px-4 py-2 rounded-lg text-xs font-mono transition-colors"
-        >
-          SYSTEM LOGOUT
-        </button>
-      </div>
 
-      {/* Submissions Data Grid */}
-      <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-900/80 border-b border-slate-800 text-xs font-mono text-slate-400 uppercase tracking-wider">
-                <th className="p-4">Student</th>
-                <th className="p-4">Assignment</th>
-                <th className="p-4">Submitted</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {submissions.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="p-12 text-center">
-                    <div className="text-slate-500 font-mono text-sm">NO SUBMISSIONS DETECTED IN REGISTRY</div>
-                    <div className="text-slate-600 text-xs mt-2">Waiting for student transmissions...</div>
-                  </td>
+        {/* ── Submissions table ──────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          {/* Table header bar */}
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-white">Student Submissions</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Review and grade all submitted work</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+                  {['Student', 'Assignment', 'Submitted', 'Status', 'Actions'].map((h, i) => (
+                    <th key={h} className={`px-6 py-3.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ${i === 4 ? 'text-right' : 'text-left'}`}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                submissions.map(sub => (
-                  <tr key={sub.id} className="hover:bg-slate-900/30 transition-colors">
-                    <td className="p-4">
-                      <div className="font-semibold text-slate-200">{sub.student?.firstName}</div>
-                      <div className="text-[10px] text-slate-500 font-mono mt-1">{sub.student?.email}</div>
-                    </td>
-                    <td className="p-4 text-sm text-slate-300">{sub.assignment?.title}</td>
-                    <td className="p-4 text-xs text-slate-400 font-mono">
-                      {new Date(sub.submittedAt).toLocaleDateString()}
-                    </td>
-                    <td className="p-4">
-                      {sub.grade !== null ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-mono font-bold bg-emerald-950/50 text-emerald-400 border border-emerald-900/50">
-                          GRADED: {sub.grade}%
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-mono font-bold bg-amber-950/50 text-amber-400 border border-amber-900/50">
-                          PENDING REVIEW
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 flex justify-end gap-3">
-                      <a 
-                        href={`http://localhost:8080${sub.fileUrl}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs font-bold text-slate-400 hover:text-indigo-400 transition-colors py-1 px-2 border border-slate-700 rounded"
-                      >
-                        VIEW FILE
-                      </a>
-                      <button 
-                        onClick={() => handleOpenGrading(sub)}
-                        className={`text-xs font-bold py-1 px-3 rounded transition-colors ${sub.grade !== null ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
-                      >
-                        {sub.grade !== null ? 'EDIT GRADE' : 'EVALUATE'}
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {submissions.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-20 text-center">
+                      <Inbox className="w-10 h-10 mb-3 text-slate-300 dark:text-slate-700 mx-auto" />
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No submissions yet</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Submissions will appear here once students upload their work.</p>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  submissions.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{sub.student?.firstName}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-mono">{sub.student?.email}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{sub.assignment?.title}</p>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge graded={sub.grade !== null} score={sub.grade} />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <a
+                            href={`http://localhost:8080${sub.fileUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            View File
+                          </a>
+                          <button
+                            onClick={() => handleOpenGrading(sub)}
+                            className={[
+                              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0',
+                              sub.grade !== null
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/30',
+                            ].join(' ')}
+                          >
+                            {sub.grade !== null ? 'Edit Grade' : 'Evaluate'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* Grading Modal Overlay */}
       {activeSubmission && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in">
-            <div className="p-5 border-b border-slate-800 flex justify-between items-center">
-              <div>
-                <h4 className="text-lg font-bold text-slate-100">Evaluate Submission</h4>
-                <p className="text-xs text-slate-400 mt-1 font-mono">{activeSubmission.student?.firstName} - {activeSubmission.assignment?.title}</p>
-              </div>
-              <button onClick={() => setActiveSubmission(null)} className="text-slate-500 hover:text-rose-400">✖</button>
-            </div>
-            
-            <form onSubmit={submitGrade} className="p-6 space-y-5">
-              <div>
-                <label className="block text-xs font-mono text-indigo-400 mb-2 uppercase tracking-widest">Final Score (%)</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  max="100" 
-                  step="0.1"
-                  required
-                  value={gradeInput}
-                  onChange={(e) => setGradeInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors"
-                  placeholder="e.g. 85.5"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-mono text-emerald-400 mb-2 uppercase tracking-widest">Instructor Feedback</label>
-                <textarea 
-                  rows="4"
-                  value={feedbackInput}
-                  onChange={(e) => setFeedbackInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors"
-                  placeholder="Leave constructive feedback for the student..."
-                ></textarea>
-              </div>
-
-              <div className="pt-2 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setActiveSubmission(null)}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded font-bold transition-colors text-sm"
-                >
-                  CANCEL
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded font-bold transition-colors text-sm disabled:opacity-50"
-                >
-                  {isSubmitting ? 'SYNCING...' : 'COMMIT EVALUATION'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <GradingModal
+          submission={activeSubmission}
+          onClose={() => setActiveSubmission(null)}
+          onSubmit={submitGrade}
+          gradeInput={gradeInput}
+          setGradeInput={setGradeInput}
+          feedbackInput={feedbackInput}
+          setFeedbackInput={setFeedbackInput}
+          isSubmitting={isSubmitting}
+        />
       )}
-    </div>
+    </>
   );
 };
 
