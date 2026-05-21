@@ -1,23 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// ── Icons ──────────────────────────────────────────────────────────────────
-const PlusIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-const FileIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-  </svg>
-);
-const ChevronIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="9 18 15 12 9 6"/>
-  </svg>
-);
+import { Plus, FileText, ChevronRight, MousePointerClick } from 'lucide-react';
 
 // ── Status Badges ──────────────────────────────────────────────────────────
 const GradedBadge = ({ score }) => (
@@ -160,7 +143,7 @@ const Assignments = () => {
               type="submit"
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2"
             >
-              <PlusIcon />
+              <Plus size={15} />
               Issue Assignment
             </button>
           </form>
@@ -210,7 +193,7 @@ const Assignments = () => {
                         ].join(' ')}
                       >
                         Submissions
-                        <ChevronIcon />
+                        <ChevronRight size={14} />
                       </button>
                     </div>
                   );
@@ -236,7 +219,7 @@ const Assignments = () => {
             {!activeAssignment ? (
               <div className="flex items-center justify-center h-44">
                 <div className="text-center">
-                  <div className="text-3xl mb-2 text-slate-200 dark:text-slate-700">👆</div>
+                  <MousePointerClick className="w-10 h-10 mb-2 text-slate-300 dark:text-slate-700 mx-auto" />
                   <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">Select an assignment above</p>
                 </div>
               </div>
@@ -279,7 +262,7 @@ const Assignments = () => {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
                             >
-                              <FileIcon />
+                              <FileText size={13} />
                               View File
                             </a>
                           </td>

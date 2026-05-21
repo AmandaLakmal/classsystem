@@ -2,16 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all";
 
-const RefreshIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-  </svg>
-);
-const PlusIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
+import { RefreshCw, Plus, Building2 } from 'lucide-react';
 
 const BatchSchedules = () => {
   const [year,          setYear]          = useState('');
@@ -128,7 +119,7 @@ const BatchSchedules = () => {
                 type="submit" disabled={isSubmitting}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2"
               >
-                <PlusIcon />
+                <Plus size={15} />
                 {isSubmitting ? 'Creating…' : 'Create Batch'}
               </button>
             </form>
@@ -146,7 +137,7 @@ const BatchSchedules = () => {
               onClick={fetchBatches}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all"
             >
-              <RefreshIcon />
+              <RefreshCw size={14} />
               Refresh
             </button>
           </div>
@@ -175,7 +166,7 @@ const BatchSchedules = () => {
                 ) : batches.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-20 text-center">
-                      <div className="text-4xl mb-3 text-slate-200 dark:text-slate-700">🏫</div>
+                      <Building2 className="w-10 h-10 mb-3 mx-auto text-slate-300 dark:text-slate-700" />
                       <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No batches found</p>
                       <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Create your first cohort using the form on the left</p>
                     </td>

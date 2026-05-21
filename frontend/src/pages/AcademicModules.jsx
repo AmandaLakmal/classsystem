@@ -3,17 +3,7 @@ import React, { useState, useEffect } from 'react';
 // ── Shared input style ─────────────────────────────────────────────────────
 const inputClass = "w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all";
 
-// ── Icons ──────────────────────────────────────────────────────────────────
-const PublishIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-  </svg>
-);
-const RefreshIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-  </svg>
-);
+import { Send, RefreshCw, Tv, Video } from 'lucide-react';
 
 // ── Helper: YouTube embed URL ─────────────────────────────────────────────
 const getYouTubeEmbedUrl = (url) => {
@@ -200,7 +190,7 @@ const AcademicModules = () => {
                 type="submit" disabled={isSubmitting}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2"
               >
-                <PublishIcon />
+                <Send size={15} />
                 {isSubmitting ? 'Publishing…' : 'Publish Module'}
               </button>
             </form>
@@ -220,7 +210,7 @@ const AcademicModules = () => {
               disabled={isFetching}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all disabled:opacity-60"
             >
-              <RefreshIcon />
+              <RefreshCw size={14} />
               {isFetching ? 'Syncing…' : 'Refresh'}
             </button>
           </div>
@@ -229,7 +219,7 @@ const AcademicModules = () => {
           <div className="flex-1 overflow-y-auto p-5 space-y-6">
             {modules.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
-                <div className="text-4xl text-slate-200 dark:text-slate-700">📺</div>
+                <Tv className="w-10 h-10 text-slate-300 dark:text-slate-700" />
                 <p className="text-sm font-medium text-slate-400 dark:text-slate-500">No modules published yet</p>
                 <p className="text-xs text-slate-300 dark:text-slate-600">Use the form on the left to publish your first lesson</p>
               </div>
@@ -255,7 +245,7 @@ const AcademicModules = () => {
                     ) : (
                       <div className="aspect-video w-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                         <div className="text-center">
-                          <div className="text-3xl mb-1 text-slate-300 dark:text-slate-600">🎬</div>
+                          <Video className="w-8 h-8 mb-2 mx-auto text-slate-300 dark:text-slate-600" />
                           <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">No video attached</p>
                         </div>
                       </div>

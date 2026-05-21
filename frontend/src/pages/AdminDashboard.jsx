@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Inbox } from 'lucide-react';
 
 // ── Shared UI Primitives ───────────────────────────────────────────────────
 const Spinner = ({ color = 'indigo' }) => (
@@ -197,7 +197,7 @@ const AdminDashboard = () => {
                 {submissions.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-20 text-center">
-                      <div className="text-slate-300 dark:text-slate-700 text-4xl mb-3">📬</div>
+                      <Inbox className="w-10 h-10 mb-3 text-slate-300 dark:text-slate-700 mx-auto" />
                       <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No submissions yet</p>
                       <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Submissions will appear here once students upload their work.</p>
                     </td>

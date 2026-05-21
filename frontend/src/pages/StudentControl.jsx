@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { GraduationCap } from 'lucide-react';
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all";
 
@@ -100,7 +101,7 @@ const StudentControl = () => {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-20 text-center">
-                      <div className="text-4xl mb-3 text-slate-200 dark:text-slate-700">🎓</div>
+                      <GraduationCap className="w-10 h-10 mb-3 mx-auto text-slate-300 dark:text-slate-700" />
                       <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                         {search ? 'No students match your search' : 'No students enrolled yet'}
                       </p>
