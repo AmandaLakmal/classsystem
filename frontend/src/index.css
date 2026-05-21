@@ -1,6 +1,39 @@
+/* =========================================================
+   ZeroState LMS — Global Stylesheet
+   Tailwind CSS v4
+   ========================================================= */
+
+/* ── Google Fonts must come FIRST (PostCSS @import ordering rule) ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+/* ── Tailwind v4 — single import replaces all @tailwind directives ── */
 @import "tailwindcss";
 
-body {
-  background-color: #0F1115;
-  color: #ffffff;
+/* ── Dark-mode: scoped to the .dark wrapper div, not <html> ── */
+@custom-variant dark (&:is(.dark *));
+
+/* ── Custom design tokens ─────────────────────────────────── */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 }
+
+/* ── Global resets ────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+
+/* ── Page-entry animation ─────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeInUp 0.35s ease-out both; }
+
+/* ── Minimal scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.dark ::-webkit-scrollbar-thumb  { background: #334155; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }

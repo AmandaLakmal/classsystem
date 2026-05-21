@@ -1,104 +1,142 @@
 import React, { useState, useEffect } from 'react';
 
+const inputClass = "w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all";
+
 const StudentControl = () => {
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState('');
+  const [search,   setSearch]   = useState('');
 
   useEffect(() => {
-  const fetchStudents = async () => {
-    try {
-      // 1. Grab the token from local storage
-      const token = localStorage.getItem('token');
-      
-      // 2. Attach it to the Authorization header
-      const response = await fetch('http://localhost:8080/api/v1/student/get-all', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned status ${response.status}`);
-      }
-
-      const data = await response.json();
-      setStudents(data);
-      
-    } catch (error) {
-      console.error("Data fetch exception:", error);
+    const fetchStudents = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:8080/api/v1/student/get-all', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) throw new Error(`Server returned status ${response.status}`);
+        setStudents(await response.json());
+      } catch (error) {
+        console.error('Data fetch exception:', error);
         setError('Failed to retrieve student roster. Verify upstream connection.');
       } finally {
         setLoading(false);
       }
     };
-
     fetchStudents();
   }, []);
 
+  const filtered = students.filter((s) => {
+    const q = search.toLowerCase();
+    return (
+      s.firstName?.toLowerCase().includes(q) ||
+      s.lastName?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q) ||
+      s.studentRegId?.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="space-y-6">
-      {/* View Header */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-fade-in">
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-xl font-bold text-slate-100">Student Control Registry</h3>
-          <p className="text-xs text-slate-400 mt-1">Real-time synchronization with primary database core</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Students</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Manage enrolled students and their account status
+          </p>
         </div>
-        <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-mono">
-          Total Records: {students.length}
+        <div className="flex items-center gap-3">
+          {/* Live count badge */}
+          <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold">
+            {students.length} Enrolled
+          </div>
+          {/* Search */}
+          <input
+            type="text"
+            placeholder="Search students…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`${inputClass} max-w-[220px]`}
+          />
         </div>
       </div>
 
-      {/* Conditional Rendering Blocks */}
-      {loading && (
-        <div className="text-center py-12 text-sm font-mono text-slate-500 animate-pulse">
-          🔍 Querying database registries...
-        </div>
-      )}
-
+      {/* ── Error state ─────────────────────────────────────────── */}
       {error && (
-        <div className="bg-rose-950/40 border border-rose-900/60 text-rose-400 p-4 rounded-lg text-xs font-mono uppercase">
-          [ DATA_FETCH_ERROR ] {error}
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 text-sm">
+          <span className="font-semibold shrink-0">Error:</span>
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Data Presentation Grid */}
+      {/* ── Loading ──────────────────────────────────────────────── */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center h-60 gap-3">
+          <div className="w-8 h-8 border-2 border-slate-200 dark:border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Loading student registry…</p>
+        </div>
+      )}
+
+      {/* ── Table ───────────────────────────────────────────────── */}
       {!loading && !error && (
-        <div className="border border-slate-800 bg-slate-950 rounded-xl overflow-hidden shadow-2xl">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm text-slate-300">
-              <thead className="bg-slate-900 text-xs font-mono uppercase text-slate-400 tracking-wider border-b border-slate-800">
-                <tr>
-                  <th className="p-4">Reg ID</th>
-                  <th className="p-4">Full Name</th>
-                  <th className="p-4">Email Channel</th>
-                  <th className="p-4">Contact</th>
-                  <th className="p-4 text-center">Status</th>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+                  {['Reg ID', 'Full Name', 'Email', 'Contact', 'Status'].map((h, i) => (
+                    <th key={h} className={`px-6 py-3.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ${i === 4 ? 'text-center' : 'text-left'}`}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {students.length === 0 ? (
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-xs font-mono text-slate-500">
-                      NO RECORDS FOUND. DATABASE FLUSHED OR EMPTY.
+                    <td colSpan="5" className="px-6 py-20 text-center">
+                      <div className="text-4xl mb-3 text-slate-200 dark:text-slate-700">🎓</div>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {search ? 'No students match your search' : 'No students enrolled yet'}
+                      </p>
                     </td>
                   </tr>
                 ) : (
-                  students.map((student) => (
-                    <tr key={student.id} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="p-4 font-mono text-emerald-400 font-semibold">{student.studentRegId || 'N/A'}</td>
-                      <td className="p-4 font-medium text-slate-200">{`${student.firstName} ${student.lastName}`}</td>
-                      <td className="p-4 text-slate-400 font-mono text-xs">{student.email}</td>
-                      <td className="p-4 text-slate-400 font-mono text-xs">{student.contactNumber || '—'}</td>
-                      <td className="p-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                          student.isActive 
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                            : 'bg-slate-800 border-slate-700 text-slate-500'
-                        }`}>
-                          {student.isActive ? 'Active' : 'Inactive'}
+                  filtered.map((student) => (
+                    <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-1 rounded-md">
+                          {student.studentRegId || 'N/A'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {`${student.firstName} ${student.lastName}`}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 font-mono">
+                        {student.email}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 font-mono">
+                        {student.contactNumber || '—'}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {student.isActive ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                            Inactive
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))

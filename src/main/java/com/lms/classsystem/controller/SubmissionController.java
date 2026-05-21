@@ -131,4 +131,19 @@ public class SubmissionController {
             return ResponseEntity.status(500).body("Failed to retrieve submissions: " + e.getMessage());
         }
     }
+    
+ // ==========================================
+    // 4. FETCH SUBMISSIONS BY ASSIGNMENT ID
+    // ==========================================
+    @GetMapping("/assignment/{assignmentId}")
+    public ResponseEntity<?> getSubmissionsByAssignment(@PathVariable Long assignmentId) {
+        try {
+            // Note: If you don't have this method in your repository yet, 
+            // we will need to add it to SubmissionRepository.java!
+            java.util.List<Submission> submissions = submissionRepository.findByAssignmentId(assignmentId);
+            return ResponseEntity.ok(submissions);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Database query failed: " + e.getMessage());
+        }
+    }
 }
