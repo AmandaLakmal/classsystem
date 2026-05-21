@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, ClipboardList, BookOpen, LogOut, Check, Upload, Trash2, Book, Video, Sun, Moon, Clock } from 'lucide-react';
+import ChatWidget from '../components/ChatWidget';
 
 const parseJwt = (token) => {
   try { return JSON.parse(atob(token.split('.')[1])); }
@@ -491,6 +492,9 @@ const StudentDashboard = ({ theme, toggleTheme }) => {
           </div>
         </div>
       </div>
+
+      {/* ── Global floating chat widget ─────────────────────────────── */}
+      <ChatWidget />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   LogOut, 
   Wifi 
 } from 'lucide-react';
+import ChatWidget from '../components/ChatWidget';
 
 const navItems = [
   { to: '/admin/dashboard',   label: 'Dashboard',      icon: <LayoutDashboard size={18} /> },
@@ -146,6 +147,9 @@ const AdminLayout = ({ theme, toggleTheme }) => {
           <Outlet />
         </main>
       </div>
+
+      {/* ── Global floating chat widget ─────────────────────────────── */}
+      <ChatWidget />
     </div>
   );
 };
