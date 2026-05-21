@@ -1,253 +1,279 @@
 import React, { useState, useEffect } from 'react';
 
+// ── Shared input style ─────────────────────────────────────────────────────
+const inputClass = "w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all";
+
+// ── Icons ──────────────────────────────────────────────────────────────────
+const PublishIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </svg>
+);
+const RefreshIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+  </svg>
+);
+
+// ── Helper: YouTube embed URL ─────────────────────────────────────────────
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match  = url.match(regExp);
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+};
+
+// ── AcademicModules ────────────────────────────────────────────────────────
 const AcademicModules = () => {
-  // Form State
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
+  // Form state
+  const [title,           setTitle]           = useState('');
+  const [description,     setDescription]     = useState('');
+  const [videoUrl,        setVideoUrl]        = useState('');
   const [selectedBatchId, setSelectedBatchId] = useState('');
-  
-  // Data State
-  const [batches, setBatches] = useState([]);
-  const [modules, setModules] = useState([]);
-  
-  // UI State
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState(null);
-  const [isFetching, setIsFetching] = useState(false);
 
-  // Helper function to safely extract YouTube Video IDs
-  const getYouTubeEmbedUrl = (url) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
-  };
+  // Data state
+  const [batches,         setBatches]         = useState([]);
+  const [modules,         setModules]         = useState([]);
 
-  // 1. Fetch available Batches for the Dropdown on load
+  // UI state
+  const [isSubmitting,    setIsSubmitting]    = useState(false);
+  const [statusMessage,   setStatusMessage]   = useState(null);
+  const [isFetching,      setIsFetching]      = useState(false);
+
+  // 1. Load batches for dropdown
   useEffect(() => {
     const loadBatches = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:8080/api/v1/batch/get-all', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res   = await fetch('http://localhost:8080/api/v1/batch/get-all', {
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) setBatches(await res.json());
-      } catch (err) {
-        console.warn("Could not load batches for dropdown.");
-      }
+      } catch { console.warn('Could not load batches for dropdown.'); }
     };
     loadBatches();
   }, []);
 
-  // 2. Handle Publishing a New Lesson Module
-  const handlePublish = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setStatusMessage(null);
-
-    try {
-      const token = localStorage.getItem('token');
-      
-      // FIXED ENDPOINT: Using his exact "lession" mapping
-      const response = await fetch('http://localhost:8080/api/v1/lession/save', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          title: title, 
-          description: description, 
-          videoUrl: videoUrl,
-          batchId: parseInt(selectedBatchId) 
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to publish module. DTO mismatch likely.');
-
-      setStatusMessage({ type: 'success', text: 'MODULE PUBLISHED: Course material is now live.' });
-      setTitle('');
-      setDescription('');
-      setVideoUrl('');
-      
-      // Auto-refresh the feed after publishing
-      handleSyncFeed(new Event('submit'));
-
-    } catch (error) {
-      console.error(error);
-      setStatusMessage({ type: 'error', text: `[ PUBLISH_FAILED ] ${error.message}` });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // 3. Fetch All Modules
+  // 2. Fetch all modules
   const handleSyncFeed = async (e) => {
-    if(e) e.preventDefault();
+    if (e) e.preventDefault();
     setIsFetching(true);
-
     try {
-      const token = localStorage.getItem('token');
-      // FIXED ENDPOINT: Using his "get-all" route
-      const response = await fetch(`http://localhost:8080/api/v1/lession/get-all`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const token    = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/v1/lession/get-all', {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.ok) {
-        setModules(await response.json());
-      } else {
-        setModules([]);
-      }
-    } catch (error) {
+      setModules(response.ok ? await response.json() : []);
+    } catch {
       setModules([]);
     } finally {
       setIsFetching(false);
     }
   };
 
-  // Auto-load feed on mount
-  useEffect(() => {
-    handleSyncFeed();
-  }, []);
+  // Auto-load on mount
+  useEffect(() => { handleSyncFeed(); }, []);
+
+  // 3. Publish a new lesson
+  const handlePublish = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setStatusMessage(null);
+    try {
+      const token    = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/v1/lession/save', {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          title, description, videoUrl,
+          batchId: parseInt(selectedBatchId),
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to publish module. DTO mismatch likely.');
+      setStatusMessage({ type: 'success', text: 'Module published successfully.' });
+      setTitle(''); setDescription(''); setVideoUrl('');
+      handleSyncFeed(null);
+    } catch (error) {
+      console.error(error);
+      setStatusMessage({ type: 'error', text: error.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      {/* ── Page header ──────────────────────────────────────── */}
       <div>
-        <h3 className="text-xl font-bold text-slate-100">Academic & Lessons</h3>
-        <p className="text-xs text-slate-400 mt-1">Publish study materials and embed video lectures for classroom cohorts</p>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Academic Modules</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          Publish study materials and embed video lectures for classroom cohorts
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* LEFT PANEL: PUBLISHER FORM */}
-        <div className="lg:col-span-1 bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-2xl h-fit">
-          <h4 className="text-sm font-mono text-emerald-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-            Course Publisher
-          </h4>
 
-          {statusMessage && (
-            <div className={`p-3 rounded-lg text-xs font-mono mb-6 border ${statusMessage.type === 'error' ? 'bg-rose-950/40 border-rose-900/60 text-rose-400' : 'bg-emerald-950/40 border-emerald-900/60 text-emerald-400'}`}>
-              {statusMessage.text}
+        {/* ── LEFT: Publisher form ──────────────────────────── */}
+        <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-fit">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-white">Course Publisher</h2>
             </div>
-          )}
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Publish a new lesson module to a batch</p>
+          </div>
 
-          <form onSubmit={handlePublish} className="space-y-4">
-            
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">TARGET COHORT</label>
-              <select 
-                required
-                value={selectedBatchId}
-                onChange={(e) => setSelectedBatchId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm outline-none transition-colors appearance-none"
+          <div className="p-6 space-y-4">
+            {/* Status banner */}
+            {statusMessage && (
+              <div className={`flex items-start gap-2.5 p-3.5 rounded-xl text-sm border ${
+                statusMessage.type === 'error'
+                  ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400'
+                  : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+              }`}>
+                <span className="font-semibold shrink-0">{statusMessage.type === 'error' ? 'Error:' : '✓'}</span>
+                {statusMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handlePublish} className="space-y-4">
+              {/* Batch selector */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                  Target Cohort
+                </label>
+                <select
+                  required
+                  value={selectedBatchId}
+                  onChange={(e) => setSelectedBatchId(e.target.value)}
+                  className={`${inputClass} appearance-none`}
+                >
+                  <option value="" disabled>Select a classroom batch…</option>
+                  {batches.map(batch => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.batchName} (ID: {batch.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                  Module Title
+                </label>
+                <input
+                  type="text" required value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Chapter 1: System Architecture"
+                  className={inputClass}
+                />
+              </div>
+
+              {/* YouTube URL */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                  YouTube URL <span className="text-slate-400 font-normal normal-case">(optional)</span>
+                </label>
+                <input
+                  type="url" value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=…"
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  required rows="3" value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Lesson overview and learning objectives…"
+                  className={`${inputClass} resize-none`}
+                />
+              </div>
+
+              <button
+                type="submit" disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 mt-2"
               >
-                <option value="" disabled>Select a Classroom Batch...</option>
-                {batches.map(batch => (
-                  <option key={batch.id} value={batch.id}>
-                    {batch.batchName} (ID: {batch.id})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">MODULE TITLE</label>
-              <input 
-                type="text" 
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Chapter 1: System Architecture"
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm outline-none transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">YOUTUBE URL</label>
-              <input 
-                type="url" 
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm font-mono outline-none transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-mono text-slate-500 mb-1 block">MODULE DESCRIPTION</label>
-              <textarea 
-                required
-                rows="3"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Lesson overview..."
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-200 p-2.5 rounded-lg text-sm outline-none transition-colors resize-none"
-              ></textarea>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isSubmitting}
-              className={`w-full py-3 rounded-lg text-xs font-bold font-mono tracking-widest uppercase transition-colors mt-2 ${
-                isSubmitting ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-              }`}
-            >
-              {isSubmitting ? 'Publishing...' : 'Publish Module'}
-            </button>
-          </form>
+                <PublishIcon />
+                {isSubmitting ? 'Publishing…' : 'Publish Module'}
+              </button>
+            </form>
+          </div>
         </div>
 
-        {/* RIGHT PANEL: MEDIA FEED */}
-        <div className="lg:col-span-2 border border-slate-800 bg-slate-950 rounded-xl overflow-hidden shadow-2xl flex flex-col h-[700px]">
-          <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
-             <h4 className="text-sm font-mono text-slate-400 uppercase tracking-wider">Global Lesson Database</h4>
-             
-             <button onClick={handleSyncFeed} disabled={isFetching} className="text-xs font-mono bg-slate-900 text-emerald-400 px-4 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500 transition-colors">
-               {isFetching ? 'SYNCING...' : 'FORCE SYNC FEED'}
-             </button>
+        {/* ── RIGHT: Lesson feed ─────────────────────────────── */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col" style={{ height: '700px' }}>
+          {/* Feed header */}
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Lesson Library</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{modules.length} modules published</p>
+            </div>
+            <button
+              onClick={handleSyncFeed}
+              disabled={isFetching}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all disabled:opacity-60"
+            >
+              <RefreshIcon />
+              {isFetching ? 'Syncing…' : 'Refresh'}
+            </button>
           </div>
-          
-          <div className="p-6 overflow-y-auto space-y-8">
+
+          {/* Feed content */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
             {modules.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs font-mono text-slate-600 uppercase tracking-widest border border-dashed border-slate-800 rounded-lg py-32">
-                NO LESSONS PUBLISHED.
+              <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
+                <div className="text-4xl text-slate-200 dark:text-slate-700">📺</div>
+                <p className="text-sm font-medium text-slate-400 dark:text-slate-500">No modules published yet</p>
+                <p className="text-xs text-slate-300 dark:text-slate-600">Use the form on the left to publish your first lesson</p>
               </div>
             ) : (
               modules.map((mod) => {
                 const embedUrl = getYouTubeEmbedUrl(mod.videoUrl);
                 return (
-                  <div key={mod.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    {/* YouTube Embed Area */}
+                  <div
+                    key={mod.id}
+                    className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-800/40 hover:border-slate-200 dark:hover:border-slate-700 transition-colors"
+                  >
+                    {/* ── Video area ── */}
                     {embedUrl ? (
-                      <div className="aspect-video w-full bg-black border-b border-slate-800">
-                        <iframe 
-                          width="100%" 
-                          height="100%" 
-                          src={embedUrl} 
-                          title={mod.title}
-                          frameBorder="0" 
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      <div className="aspect-video w-full bg-black">
+                        <iframe
+                          width="100%" height="100%"
+                          src={embedUrl} title={mod.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
-                        ></iframe>
+                        />
                       </div>
                     ) : (
-                      <div className="aspect-video w-full bg-slate-950 flex items-center justify-center text-slate-600 font-mono text-xs border-b border-slate-800">
-                        [ NO MEDIA ATTACHED ]
+                      <div className="aspect-video w-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="text-3xl mb-1 text-slate-300 dark:text-slate-600">🎬</div>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">No video attached</p>
+                        </div>
                       </div>
                     )}
-                    
-                    {/* Module Content */}
-                    <div className="p-5">
-                      <div className="flex justify-between items-start mb-2">
-                        <h5 className="font-bold text-lg text-slate-100">{mod.title}</h5>
+
+                    {/* ── Module info ── */}
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3 mb-1.5">
+                        <h4 className="font-semibold text-base text-slate-900 dark:text-white leading-snug">{mod.title}</h4>
                         {mod.batchId && (
-                          <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                            BATCH: {mod.batchId}
+                          <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
+                            Batch {mod.batchId}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-400 whitespace-pre-wrap">{mod.description}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                        {mod.description}
+                      </p>
                     </div>
                   </div>
                 );
