@@ -27,4 +27,12 @@ public class Assignment {
     @ManyToOne
     @JoinColumn(name = "course_id")
     private Course course;
+
+    // ── Phase 2: Direct Teacher Segregation ────────────────────────────────
+    // Explicitly surfaces which Instructor set this assignment.
+    // Transitively available via course.instructor, but surfaced here
+    // for direct querying without joins (analytics, filtering, grading UI).
+    @ManyToOne
+    @JoinColumn(name = "instructor_id", nullable = true)
+    private Instructor instructor;
 }

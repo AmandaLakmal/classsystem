@@ -10,6 +10,7 @@ import AcademicModules from './pages/AcademicModules';
 import Assignments from './pages/Assignments';
 import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AnalyticsDashboard from './pages/AnalyticsDashboard';
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -65,6 +66,7 @@ function App() {
             <Route path="batches" element={<BatchSchedules />} />
             <Route path="academic" element={<AcademicModules />} />
             <Route path="assignments" element={<Assignments />} />
+            <Route path="analytics"   element={<AnalyticsDashboard />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
