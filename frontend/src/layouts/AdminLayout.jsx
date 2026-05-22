@@ -10,7 +10,8 @@ import {
   Sun, 
   Moon, 
   LogOut, 
-  Wifi 
+  Wifi,
+  BarChart2
 } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
 
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/admin/academic',    label: 'Academics',      icon: <BookOpen size={18} /> },
   { to: '/admin/assignments', label: 'Assignments',    icon: <ClipboardList size={18} /> },
   { to: '/admin/batches',     label: 'Batch Schedules',icon: <Layers size={18} /> },
+  { to: '/admin/analytics',   label: 'Analytics',      icon: <BarChart2 size={18} /> },
 ];
 
 const AdminLayout = ({ theme, toggleTheme }) => {

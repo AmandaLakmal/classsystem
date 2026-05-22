@@ -14,4 +14,6 @@ public class NoticeDTO {
     private String content;
     private LocalDateTime createdAt;
     private Long batchId;
+    private Long courseId;   // new — optional subject targeting
+    private String courseName; // read-only, for display
 }

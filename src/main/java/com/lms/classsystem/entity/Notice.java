@@ -15,15 +15,21 @@ public class Notice {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     private String title;
-    
+
     @Column(columnDefinition = "TEXT")
     private String content;
-    
+
     private LocalDateTime createdAt = LocalDateTime.now();
-    
+
+    // Target by Batch (existing — preserved)
     @ManyToOne
     @JoinColumn(name = "batch_id")
     private Batch batch;
+
+    // Target by Subject/Course (new — nullable, additive)
+    @ManyToOne
+    @JoinColumn(name = "course_id")
+    private Course course;
 }
