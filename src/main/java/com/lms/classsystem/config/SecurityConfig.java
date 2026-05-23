@@ -46,9 +46,10 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults()) // Enables CORS and looks for the bean below
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
-                // Public endpoints: login, register, static uploads
+                // Public endpoints: login, register, static uploads, websocket
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/ws-chat/**").permitAll()
                 // Profile & security ops — any authenticated user
                 .requestMatchers("/api/v1/auth/me").authenticated()
                 .requestMatchers("/api/v1/auth/upload-photo").authenticated()

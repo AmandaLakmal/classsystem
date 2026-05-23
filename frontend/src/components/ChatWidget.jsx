@@ -112,17 +112,16 @@ export default function ChatWidget() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 font-sans">
+    <div className={`fixed z-50 flex flex-col items-end gap-3 font-sans ${isOpen && !minimised ? 'inset-0 sm:bottom-6 sm:right-6 sm:inset-auto' : 'bottom-6 right-6'}`}>
 
       {/* ── Chat Panel ─────────────────────────────────────────────────── */}
       {isOpen && (
         <div
           className={[
-            'flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700',
+            'flex flex-col bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700',
             'shadow-2xl shadow-slate-900/20 dark:shadow-slate-950/60 overflow-hidden transition-all duration-300',
-            minimised ? 'h-[52px]' : 'w-[360px] h-[500px]',
+            minimised ? 'h-[52px] w-[240px] rounded-2xl border' : 'w-full h-full sm:w-[360px] sm:h-[500px] sm:rounded-2xl sm:border',
           ].join(' ')}
-          style={{ width: minimised ? 240 : 360 }}
         >
           {/* ── Header ─────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-4 py-3 bg-indigo-600 shrink-0">
@@ -248,6 +247,7 @@ export default function ChatWidget() {
           'bg-indigo-600 hover:bg-indigo-700 text-white',
           'shadow-xl shadow-indigo-500/40 hover:shadow-indigo-500/60',
           'transition-all duration-200 hover:scale-105 active:scale-95',
+          isOpen && !minimised ? 'hidden sm:flex' : 'flex'
         ].join(' ')}
         title="Class Chat"
       >
