@@ -31,7 +31,7 @@ const ChartCard = ({ title, subtitle, icon, children, className = '' }) => (
         {subtitle && <p className="text-xs text-slate-400 dark:text-slate-500 ml-6">{subtitle}</p>}
       </div>
     </div>
-    <div className="flex-1 p-4">{children}</div>
+    <div className="flex-1 p-4 min-w-0 w-full">{children}</div>
   </div>
 );
 
@@ -205,7 +205,7 @@ const AnalyticsDashboard = () => {
       </div>
 
       {/* ── KPI stat cards ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Active Students"
           value={activeStudents}

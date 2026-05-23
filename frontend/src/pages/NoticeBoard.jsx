@@ -207,7 +207,7 @@ const NoticeBoard = () => {
                   className={`${inputClass} resize-none`} />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 {editingId && (
                   <button type="button" onClick={cancelEdit}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">

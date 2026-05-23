@@ -13,7 +13,9 @@ import {
   Wifi,
   BarChart2,
   Settings,
-  CreditCard
+  CreditCard,
+  Menu,
+  X
 } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
 
@@ -34,6 +36,7 @@ const AdminLayout = ({ theme, toggleTheme }) => {
   const [profilePhoto, setProfilePhoto] = useState('');
   const [userName, setUserName]         = useState('Super Admin');
   const [userReg, setUserReg]           = useState('SYS-999');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Fetch the current user's profile on mount and whenever localStorage changes
   useEffect(() => {
@@ -82,8 +85,16 @@ const AdminLayout = ({ theme, toggleTheme }) => {
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-[#020617] font-sans transition-colors duration-300">
 
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
-      <aside className="w-64 shrink-0 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700/60 shadow-sm transition-colors duration-300">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 md:relative md:translate-x-0 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700/60 shadow-sm ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
         {/* Brand */}
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700/60">
@@ -95,6 +106,12 @@ const AdminLayout = ({ theme, toggleTheme }) => {
               <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">ZeroState</p>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">Admin Console</p>
             </div>
+            <button 
+              className="ml-auto md:hidden p-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <X size={18} />
+            </button>
           </div>
         </div>
 
@@ -107,6 +124,7 @@ const AdminLayout = ({ theme, toggleTheme }) => {
             <Link
               key={to}
               to={to}
+              onClick={() => setIsSidebarOpen(false)}
               className={[
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group',
                 isActive(to)
@@ -135,6 +153,7 @@ const AdminLayout = ({ theme, toggleTheme }) => {
           {/* Settings link */}
           <Link
             to="/admin/settings"
+            onClick={() => setIsSidebarOpen(false)}
             className={[
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group',
               isActive('/admin/settings')
@@ -174,10 +193,18 @@ const AdminLayout = ({ theme, toggleTheme }) => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Topbar */}
-        <header className="h-16 shrink-0 flex items-center justify-between px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700/60 shadow-sm transition-colors duration-300">
-          <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white">{currentPage}</h1>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">ZeroState Learning Management System</p>
+        <header className="h-16 shrink-0 flex items-center justify-between px-4 sm:px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700/60 shadow-sm transition-colors duration-300">
+          <div className="flex items-center gap-3">
+            <button 
+              className="md:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">{currentPage}</h1>
+              <p className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 mt-0.5">ZeroState Learning Management System</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -212,7 +239,7 @@ const AdminLayout = ({ theme, toggleTheme }) => {
         </header>
 
         {/* Content viewport */}
-        <main className="flex-1 overflow-y-auto p-8 transition-colors duration-300">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8 transition-colors duration-300">
           <Outlet />
         </main>
       </div>
