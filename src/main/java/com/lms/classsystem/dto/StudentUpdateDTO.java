@@ -16,4 +16,7 @@ public class StudentUpdateDTO {
     private String instituteName;
     private Boolean isActive;
     private Long batchId;
+    // ── Phase 3: New fields ────────────────────────────────────────────────
+    private String emergencyContact;
+    private String profilePhotoUrl;
 }

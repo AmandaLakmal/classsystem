@@ -39,4 +39,8 @@ public class Instructor {
 
     @Column(nullable = true)
     private Boolean isActive = true;
+
+    // ── Phase 3: Profile Photo ─────────────────────────────────────────────
+    @Column(nullable = true)
+    private String profilePhotoUrl;
 }

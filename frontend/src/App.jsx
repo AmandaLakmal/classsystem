@@ -11,6 +11,8 @@ import Assignments from './pages/Assignments';
 import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
+import Settings from './pages/Settings';
+import BillingPayments from './pages/BillingPayments';
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -67,6 +69,8 @@ function App() {
             <Route path="academic" element={<AcademicModules />} />
             <Route path="assignments" element={<Assignments />} />
             <Route path="analytics"   element={<AnalyticsDashboard />} />
+            <Route path="settings"    element={<Settings />} />
+            <Route path="billing"     element={<BillingPayments />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
