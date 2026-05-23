@@ -6,12 +6,12 @@ import com.lms.classsystem.entity.Batch;
 import com.lms.classsystem.entity.Student;
 import com.lms.classsystem.repository.BatchRepository;
 import com.lms.classsystem.repository.StudentRepository;
+import com.lms.classsystem.service.NotificationService;
 import com.lms.classsystem.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class StudentServiceImpl implements StudentService {
@@ -21,6 +21,9 @@ public class StudentServiceImpl implements StudentService {
 
     @Autowired
     private BatchRepository batchRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     public Student saveStudent(StudentSaveDTO studentDTO) {
@@ -37,12 +40,11 @@ public class StudentServiceImpl implements StudentService {
         String locName = batch.getLocation().getName(); // eg: "Gurumadala - Kalutara"
         String year = batch.getYear(); // eg: "2026"
 
-        // 4. location eka anuwa Prefix ek (GURU/ONL) thirnaya karanawa (Old logic eka)
+        // 4. location eka anuwa Prefix ek (GURU/ONL) thirnaya karanawa
         String prefix;
         if (locName.equalsIgnoreCase("Online")) {
             prefix = "ONL";
         } else {
-            // name mul akuru 4 Uppercase krnw (Gurumadala -> GURU)
             prefix = (locName.length() >= 4) ? locName.substring(0, 4).toUpperCase() : locName.toUpperCase();
         }
 
@@ -61,12 +63,25 @@ public class StudentServiceImpl implements StudentService {
         student.setAddress(studentDTO.getAddress());
         student.setInstituteName(studentDTO.getInstituteName());
 
+        // Phase 3: New expanded profile fields
+        student.setEmergencyContact(studentDTO.getEmergencyContact());
+        student.setProfilePhotoUrl(studentDTO.getProfilePhotoUrl());
+
         // 7. Data tika save karnawa
         student.setStudentRegId(generatedRegId);
         student.setBatch(batch);
-        student.setIsActive(true); // Default save deddima  Active thiyanwa
+        student.setIsActive(true); // Default save deddima Active thiyanwa
 
-        return studentRepository.save(student);
+        Student saved = studentRepository.save(student);
+
+        // ── Phase 3: Auto-trigger registration notification ────────────────────
+        try {
+            notificationService.sendRegistrationConfirmation(saved);
+        } catch (Exception e) {
+            // Notification failures must never block the registration flow
+        }
+
+        return saved;
     }
 
     @Override
@@ -84,6 +99,11 @@ public class StudentServiceImpl implements StudentService {
         student.setContactNumber(dto.getContactNumber());
         student.setAddress(dto.getAddress());
         student.setInstituteName(dto.getInstituteName());
+
+        // Phase 3: Update new fields
+        if (dto.getEmergencyContact() != null) student.setEmergencyContact(dto.getEmergencyContact());
+        if (dto.getProfilePhotoUrl() != null) student.setProfilePhotoUrl(dto.getProfilePhotoUrl());
+        if (dto.getIsActive() != null) student.setIsActive(dto.getIsActive());
 
         if (dto.getBatchId() != null && !student.getBatch().getId().equals(dto.getBatchId())) {
             Batch newBatch = batchRepository.findById(dto.getBatchId())
@@ -117,13 +137,12 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public List<Student> searchStudent(String keyword) {
-        // Old search logic
         return studentRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrStudentRegIdContainingIgnoreCase(keyword, keyword, keyword);
     }
 
     @Override
     public void deleteStudent(Long id) {
-        // Soft Delete logic: student wa makanne nethuwa  Inactive karanawa
+        // Soft Delete logic: student wa makanne nethuwa Inactive karanawa
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Can't Find student"));
 

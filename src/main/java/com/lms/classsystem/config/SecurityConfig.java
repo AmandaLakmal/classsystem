@@ -46,14 +46,22 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults()) // Enables CORS and looks for the bean below
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/submission/**").hasAnyRole("STUDENT", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/submission/**").hasAnyRole("STUDENT", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("STUDENT", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/auth/**", "/uploads/**").permitAll()
+                // Public endpoints: login, register, static uploads
+                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
+                // Profile & security ops — any authenticated user
+                .requestMatchers("/api/v1/auth/me").authenticated()
+                .requestMatchers("/api/v1/auth/upload-photo").authenticated()
+                .requestMatchers("/api/v1/auth/change-password").authenticated()
+                // Submission endpoints — students and admins may submit/update
+                .requestMatchers(HttpMethod.POST, "/api/v1/submission/**").hasAnyRole("STUDENT", "ADMIN", "SUPERADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/submission/**").hasAnyRole("STUDENT", "ADMIN", "SUPERADMIN")
+                // Read access — all authenticated roles
+                .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("STUDENT", "ADMIN", "SUPERADMIN", "TEACHER")
+                // Write access — admins only (fine-grained via @PreAuthorize on controllers)
+                .requestMatchers(HttpMethod.POST, "/api/v1/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasAnyRole("ADMIN", "SUPERADMIN")
                 .anyRequest().authenticated()
             );
 
@@ -71,7 +79,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); 
         
         // Allow all necessary HTTP methods
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         
         // Allow the secure headers required for JWT
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));

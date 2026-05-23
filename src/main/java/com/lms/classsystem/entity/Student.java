@@ -45,4 +45,12 @@ public class Student {
     @ManyToOne
     @JoinColumn(name = "batch_id")
     private Batch batch;
+
+    // ── Phase 3: Expanded Profile Fields ──────────────────────────────────────
+    // Non-destructive — JPA ddl-auto=update adds these columns to the existing table.
+    @Column(nullable = true)
+    private String emergencyContact;
+
+    @Column(nullable = true)
+    private String profilePhotoUrl;
 }

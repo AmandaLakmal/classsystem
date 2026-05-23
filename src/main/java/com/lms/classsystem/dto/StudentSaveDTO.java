@@ -17,4 +17,7 @@ public class StudentSaveDTO {
     private String instituteName;
     private Boolean isActive = true;
     private Long batchId;
+    // ── Phase 3: New fields ────────────────────────────────────────────────
+    private String emergencyContact;
+    private String profilePhotoUrl;
 }

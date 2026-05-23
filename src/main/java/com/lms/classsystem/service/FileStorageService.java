@@ -27,8 +27,12 @@ public class FileStorageService {
     @Value("${app.upload.dir}")
     private String uploadDir;
 
+    /** Configured via app.upload.profiles.dir in application.properties */
+    @Value("${app.upload.profiles.dir}")
+    private String profilesUploadDir;
+
     /** Allowed content types for student submission uploads */
-    private static final Set<String> ALLOWED_TYPES = Set.of(
+    private static final Set<String> ALLOWED_SUBMISSION_TYPES = Set.of(
             "application/pdf",
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -36,6 +40,14 @@ public class FileStorageService {
             "image/png",
             "image/gif",
             "text/plain"
+    );
+
+    /** Allowed content types for profile photos */
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif"
     );
 
     /**
@@ -55,7 +67,7 @@ public class FileStorageService {
 
         // 2. Validate MIME type
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_TYPES.contains(contentType.toLowerCase())) {
+        if (contentType == null || !ALLOWED_SUBMISSION_TYPES.contains(contentType.toLowerCase())) {
             throw new IllegalArgumentException(
                     "File type not permitted: " + contentType +
                     ". Allowed types: PDF, DOCX, DOC, JPEG, PNG, GIF, TXT."
@@ -79,6 +91,49 @@ public class FileStorageService {
 
         // 7. Return the public URL path stored in the database
         return "/uploads/submissions/" + uniqueName;
+    }
+
+    /**
+     * Store a profile photo securely.
+     * Only accepts image MIME types. Saves to the profiles sub-directory.
+     *
+     * @param file the incoming MultipartFile (JPEG, PNG, or WebP)
+     * @return the public URL path (e.g. /uploads/profiles/uuid_photo.jpg)
+     * @throws IllegalArgumentException if the file is empty or not an allowed image type
+     * @throws IOException              if the file cannot be written to disk
+     */
+    public String storeProfilePhoto(MultipartFile file) throws IOException {
+
+        // 1. Reject empty payloads
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Profile photo cannot be empty.");
+        }
+
+        // 2. Validate MIME type — only images permitted
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException(
+                    "Profile photo type not permitted: " + contentType +
+                    ". Allowed: JPEG, PNG, WebP, GIF."
+            );
+        }
+
+        // 3. Sanitize filename
+        String safeName = sanitizeFilename(file.getOriginalFilename());
+
+        // 4. UUID prefix for collision-proofing
+        String uniqueName = UUID.randomUUID().toString().replace("-", "") + "_" + safeName;
+
+        // 5. Ensure profiles directory exists
+        Path uploadPath = Paths.get(profilesUploadDir);
+        Files.createDirectories(uploadPath);
+
+        // 6. Write to disk
+        Path target = uploadPath.resolve(uniqueName);
+        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+        // 7. Return public URL
+        return "/uploads/profiles/" + uniqueName;
     }
 
     /**
